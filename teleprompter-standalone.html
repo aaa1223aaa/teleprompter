@@ -300,7 +300,7 @@ body.fullscreen-mode .stage-controls { height: 90px; }
         </div>
 
         <div class="prompt-stage" id="promptStage" tabindex="0" aria-label="提词内容">
-          <div class="reading-guide" aria-hidden="true"></div>
+          <div class="reading-guide" id="readingGuide" aria-hidden="true"></div>
           <div class="prompt-scroll" id="promptScroll">
             <div class="prompt-text" id="promptText"></div>
           </div>
@@ -339,6 +339,7 @@ body.fullscreen-mode .stage-controls { height: 90px; }
           <button class="tab active" data-tab="script" type="button">文案</button>
           <button class="tab" data-tab="appearance" type="button">显示</button>
           <button class="tab" data-tab="advanced" type="button">跟随</button>
+          <button class="tab" data-tab="config" type="button">配置</button>
         </div>
 
         <div class="tab-panel active" id="tab-script">
@@ -419,6 +420,39 @@ body.fullscreen-mode .stage-controls { height: 90px; }
               <div class="stat"><small>当前字数</small><strong id="currentCharStat">0</strong></div>
               <div class="stat"><small>已读比例</small><strong id="readPercentStat">0%</strong></div>
               <div class="stat"><small>最近识别</small><strong id="lastHeardStat">—</strong></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="tab-panel" id="tab-config">
+          <div class="settings-grid">
+            <div class="setting-block toggle-row">
+              <div><span>自动滚动</span><small>跟读时自动滚动到当前位置</small></div>
+              <button class="toggle on" id="autoScrollToggle" aria-pressed="true" type="button"><span></span></button>
+            </div>
+            <div class="setting-block">
+              <div class="setting-header"><span>滚动位置</span><strong id="scrollPosValue">居中</strong></div>
+              <select id="scrollPosSelect">
+                <option value="top">靠上</option>
+                <option value="center" selected>居中</option>
+                <option value="bottom">靠下</option>
+              </select>
+              <p class="setting-help">当前阅读位置在屏幕中的位置。</p>
+            </div>
+            <div class="setting-block toggle-row">
+              <div><span>阅读引导线</span><small>显示左侧竖线引导视线</small></div>
+              <button class="toggle on" id="showGuideToggle" aria-pressed="true" type="button"><span></span></button>
+            </div>
+            <div class="setting-block">
+              <div class="setting-header"><span>高亮颜色</span></div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;">
+                <button class="color-pick" data-color="#ffd447" style="width:28px;height:28px;border-radius:50%;border:2px solid rgba(255,255,255,.2);background:#ffd447;cursor:pointer;" type="button"></button>
+                <button class="color-pick" data-color="#ff6175" style="width:28px;height:28px;border-radius:50%;border:2px solid rgba(255,255,255,.2);background:#ff6175;cursor:pointer;" type="button"></button>
+                <button class="color-pick" data-color="#6f7cff" style="width:28px;height:28px;border-radius:50%;border:2px solid rgba(255,255,255,.2);background:#6f7cff;cursor:pointer;" type="button"></button>
+                <button class="color-pick" data-color="#58e2d0" style="width:28px;height:28px;border-radius:50%;border:2px solid rgba(255,255,255,.2);background:#58e2d0;cursor:pointer;" type="button"></button>
+                <button class="color-pick" data-color="#ffffff" style="width:28px;height:28px;border-radius:50%;border:2px solid rgba(255,255,255,.2);background:#ffffff;cursor:pointer;" type="button"></button>
+              </div>
+              <p class="setting-help">当前阅读位置的文字颜色。</p>
             </div>
           </div>
         </div>
@@ -520,7 +554,9 @@ body.fullscreen-mode .stage-controls { height: 90px; }
     summarySpeed: $('summarySpeed'), summaryExactCount: $('summaryExactCount'),
     summaryFuzzyCount: $('summaryFuzzyCount'), summaryAvgConfidence: $('summaryAvgConfidence'),
     summaryCoverage: $('summaryCoverage'), summaryAccuracyBar: $('summaryAccuracyBar'),
-    summaryTitle: $('summaryTitle'), summarySubtitle: $('summarySubtitle')
+    summaryTitle: $('summaryTitle'), summarySubtitle: $('summarySubtitle'),
+    autoScrollToggle: $('autoScrollToggle'), scrollPosSelect: $('scrollPosSelect'), scrollPosValue: $('scrollPosValue'),
+    showGuideToggle: $('showGuideToggle'), readingGuide: $('readingGuide')
   };
 
   const sample = `大家好，今天我想跟大家分享一个特别实用的小工具。\n\n它不是普通的自动滚动提词器，而是会听你说话。你念到哪里，它就跟到哪里；你停下来，它也会停下来。\n\n就算中间漏掉几个字，或者临时换了一个说法，它也会尽量找到你现在的位置。\n\n这样拍口播视频的时候，就不用一边担心语速，一边疯狂追着提词板跑了。`;
@@ -552,6 +588,12 @@ body.fullscreen-mode .stage-controls { height: 90px; }
   let totalConfidence = 0;
   let matchCount = 0;
   let summaryShown = false;
+  // 配置项
+  let autoScroll = true;        // 自动滚动
+  let scrollPosition = 'center'; // 滚动位置: top / center / bottom
+  let showGuide = true;         // 显示阅读引导线
+  let highlightColor = '#ffd447'; // 高亮颜色
+  let textColor = '#f4f6fa';    // 文字颜色
 
   const punctuationRE = /[\s\p{P}\p{S}]/u;
 
@@ -748,11 +790,18 @@ body.fullscreen-mode .stage-controls { height: 90px; }
     els.readPercentStat.textContent = `${percent}%`;
     els.currentCharStat.textContent = `${Math.min(currentOriginalIndex, text.length)} / ${text.length}`;
 
-    if (shouldScroll && charSpans[focus]) {
+    if (autoScroll && shouldScroll && charSpans[focus]) {
       const target = charSpans[focus];
       const scroll = els.promptScroll;
       const targetCenter = target.offsetTop + target.offsetHeight / 2;
-      const desired = targetCenter - scroll.clientHeight / 2;
+      let desired;
+      if (scrollPosition === 'top') {
+        desired = target.offsetTop - 40;
+      } else if (scrollPosition === 'bottom') {
+        desired = target.offsetTop - scroll.clientHeight + target.offsetHeight + 40;
+      } else {
+        desired = targetCenter - scroll.clientHeight / 2;
+      }
       scroll.scrollTop = Math.max(0, desired);
     }
   }
@@ -956,7 +1005,8 @@ body.fullscreen-mode .stage-controls { height: 90px; }
         lineHeight: els.lineHeightRange.value,
         sensitivity: els.sensitivityRange.value,
         language: els.languageSelect.value,
-        mirrored, hideRead, autoRestart
+        mirrored, hideRead, autoRestart,
+        autoScroll, scrollPosition, showGuide, highlightColor
       }));
     } catch (_) {}
   }
@@ -974,6 +1024,10 @@ body.fullscreen-mode .stage-controls { height: 90px; }
     mirrored = !!state.mirrored;
     hideRead = !!state.hideRead;
     autoRestart = state.autoRestart !== false;
+    autoScroll = state.autoScroll !== false;
+    scrollPosition = state.scrollPosition || 'center';
+    showGuide = state.showGuide !== false;
+    highlightColor = state.highlightColor || '#ffd447';
   }
 
   function applySettings() {
@@ -989,6 +1043,17 @@ body.fullscreen-mode .stage-controls { height: 90px; }
     togglePressed(els.mirrorToggle, mirrored);
     togglePressed(els.autoRestartToggle, autoRestart);
     els.mirrorBtn.setAttribute('aria-pressed', String(mirrored));
+    // 新配置项
+    togglePressed(els.autoScrollToggle, autoScroll);
+    els.scrollPosSelect.value = scrollPosition;
+    els.scrollPosValue.textContent = { top: '靠上', center: '居中', bottom: '靠下' }[scrollPosition];
+    togglePressed(els.showGuideToggle, showGuide);
+    if (els.readingGuide) els.readingGuide.style.display = showGuide ? '' : 'none';
+    document.documentElement.style.setProperty('--warn', highlightColor);
+    document.querySelectorAll('.color-pick').forEach(function(btn) {
+      btn.style.outline = btn.dataset.color === highlightColor ? '2px solid #fff' : 'none';
+      btn.style.outlineOffset = '2px';
+    });
   }
 
   // Non-UI QA hook. Harmless in production and useful for deterministic smoke tests.
@@ -1029,6 +1094,12 @@ body.fullscreen-mode .stage-controls { height: 90px; }
   els.hideReadToggle.addEventListener('click', () => { hideRead = !hideRead; applySettings(); renderProgress(false); saveState(); });
   els.mirrorToggle.addEventListener('click', () => toggleMirror());
   els.autoRestartToggle.addEventListener('click', () => { autoRestart = !autoRestart; applySettings(); saveState(); });
+  els.autoScrollToggle.addEventListener('click', () => { autoScroll = !autoScroll; applySettings(); saveState(); });
+  els.scrollPosSelect.addEventListener('change', () => { scrollPosition = els.scrollPosSelect.value; applySettings(); saveState(); });
+  els.showGuideToggle.addEventListener('click', () => { showGuide = !showGuide; applySettings(); saveState(); });
+  document.querySelectorAll('.color-pick').forEach(function(btn) {
+    btn.addEventListener('click', () => { highlightColor = btn.dataset.color; applySettings(); saveState(); });
+  });
 
   els.sampleBtn.addEventListener('click', () => { els.scriptInput.value = sample; currentOriginalIndex = 0; updateScript(); toast('已填入示例文案'); });
   els.clearBtn.addEventListener('click', () => { stopListening(); els.scriptInput.value = ''; currentOriginalIndex = 0; updateScript(); });
