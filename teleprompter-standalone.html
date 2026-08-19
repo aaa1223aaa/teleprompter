@@ -92,7 +92,7 @@ button { cursor: pointer; }
 .prompt-stage::before { top: 0; background: linear-gradient(to bottom, rgba(5,10,18,.98), rgba(5,10,18,0)); }
 .prompt-stage::after { bottom: 0; background: linear-gradient(to top, rgba(5,10,18,.98), rgba(5,10,18,0)); }
 .reading-guide { position: absolute; z-index: 2; left: 5%; right: 5%; top: 50%; height: 94px; transform: translateY(-50%); border-left: 2px solid rgba(111,124,255,.62); background: linear-gradient(90deg, rgba(111,124,255,.055), transparent 70%); pointer-events: none; }
-.prompt-scroll { height: 100%; overflow: auto; scrollbar-width: none; scroll-behavior: smooth; padding: 30px 8% 120px; }
+.prompt-scroll { height: 100%; overflow: auto; scrollbar-width: none; scroll-behavior: smooth; padding: 60px 8% 120px; }
 .prompt-scroll::-webkit-scrollbar { display: none; }
 .prompt-text { font-size: var(--prompt-size); line-height: var(--prompt-line); font-weight: 620; letter-spacing: .025em; white-space: pre-wrap; word-break: break-word; transform-origin: center; transition: transform .2s ease; }
 .prompt-text.mirrored { transform: scaleX(-1); }
@@ -281,6 +281,24 @@ input[type="range"]:active { opacity: 0.8; }
 /* Control row slide in/out */
 .control-row { transition: opacity 0.2s var(--ease-out), transform 0.2s var(--ease-out); }
 
+/* Selfie mode — text at top, full screen, camera-friendly */
+body.selfie-mode .topbar,
+body.selfie-mode .workspace,
+body.selfie-mode .stage-controls .mode-switch,
+body.selfie-mode .stage-controls .control-row:not(#selfieExitRow) { display: none !important; }
+body.selfie-mode .app-shell { width: 100%; margin: 0; }
+body.selfie-mode .teleprompter-panel { border: 0; min-height: 100vh; }
+body.selfie-mode .prompt-stage { height: 100vh; }
+body.selfie-mode .prompt-scroll { padding: 20px 6% 20px; }
+body.selfie-mode .prompt-text { font-size: clamp(28px, 6vw, 60px); line-height: 1.5; }
+body.selfie-mode .stage-controls { height: auto; padding: 12px 0; border-top: 1px solid rgba(255,255,255,.06); }
+body.selfie-mode .reading-guide { display: none; }
+body.selfie-mode .status-row { display: none; }
+#selfieExitRow { display: none; }
+body.selfie-mode #selfieExitRow { display: flex !important; justify-content: center; }
+.selfie-exit-btn { padding: 10px 20px; border: 1px solid rgba(255,97,117,.4); border-radius: 10px; background: rgba(255,97,117,.1); color: #ff8d9a; font-size: 13px; font-weight: 600; cursor: pointer; }
+.selfie-exit-btn:active { transform: scale(0.96); }
+
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
   button, .toggle span, .tab, .mode-btn, .main-control-btn,
@@ -412,6 +430,12 @@ input[type="range"]:active { opacity: 0.8; }
               <svg viewBox="0 0 24 24" fill="none"><path d="M4 12a8 8 0 1 0 2.34-5.66L4 8.67M4 4v4.67h4.67" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
               重置
             </button>
+            <button class="control-btn" id="selfieBtn" type="button" title="自拍模式" style="border-color:rgba(88,226,208,.3);color:var(--accent-2);">
+              🤳 自拍
+            </button>
+          </div>
+          <div class="control-row" id="selfieExitRow">
+            <button class="selfie-exit-btn" id="selfieExitBtn" type="button">✕ 退出自拍模式</button>
           </div>
           <div class="control-row" id="scrollControls" style="display:none;">
             <button class="control-btn" id="scrollResetBtn" type="button">
@@ -422,6 +446,7 @@ input[type="range"]:active { opacity: 0.8; }
               ▶️ 开始滚动
               <kbd>Space</kbd>
             </button>
+            <button class="control-btn" id="selfieBtn2" type="button" title="自拍模式" style="border-color:rgba(88,226,208,.3);color:var(--accent-2);">🤳 自拍</button>
             <div class="scroll-speed-ctrl">
               <span class="scroll-speed-label">速度</span>
               <input id="scrollSpeedRange" type="range" min="1" max="10" value="3" />
@@ -1292,6 +1317,24 @@ input[type="range"]:active { opacity: 0.8; }
     startListening();
   });
   els.summaryOverlay.addEventListener('click', function(e) { if (e.target === els.summaryOverlay) hideSummary(); });
+
+  // ===== 自拍模式 =====
+  function enterSelfieMode() {
+    document.body.classList.add('selfie-mode');
+    var el = document.documentElement;
+    if (el.requestFullscreen) el.requestFullscreen();
+    else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+  }
+  function exitSelfieMode() {
+    document.body.classList.remove('selfie-mode');
+    if (document.fullscreenElement || document.webkitFullscreenElement) {
+      if (document.exitFullscreen) document.exitFullscreen();
+      else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+    }
+  }
+  $('selfieBtn').addEventListener('click', enterSelfieMode);
+  if ($('selfieBtn2')) $('selfieBtn2').addEventListener('click', enterSelfieMode);
+  $('selfieExitBtn').addEventListener('click', exitSelfieMode);
 
   // ===== 自动滚动模式 =====
   function switchMode(mode) {
