@@ -105,7 +105,17 @@ button { cursor: pointer; }
 .empty-orb svg { width: 26px; }
 .empty-state h2 { font-size: 22px; margin: 0 0 8px; }
 .empty-state p { margin: 0; color: var(--muted); font-size: 14px; }
-.stage-controls { height: 82px; border-top: 1px solid rgba(255,255,255,.04); display: flex; align-items: center; justify-content: center; gap: 10px; }
+.stage-controls { min-height: 82px; border-top: 1px solid rgba(255,255,255,.04); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 10px 0; }
+.mode-switch { display: flex; gap: 0; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin: 0 auto; }
+.mode-btn { padding: 8px 16px; border: 0; background: transparent; color: var(--muted); font-size: 12px; font-weight: 600; cursor: pointer; transition: .18s; white-space: nowrap; }
+.mode-btn.active { background: rgba(111,124,255,.15); color: #fff; }
+.mode-btn:hover:not(.active) { background: rgba(255,255,255,.04); }
+.control-row { display: flex; align-items: center; justify-content: center; gap: 10px; }
+.scroll-speed-ctrl { display: flex; align-items: center; gap: 8px; padding: 8px 14px; border: 1px solid var(--border); border-radius: 10px; background: rgba(255,255,255,.025); }
+.scroll-speed-label { font-size: 12px; color: var(--muted); }
+.scroll-speed-value { font-size: 14px; font-weight: 700; color: var(--accent-2); min-width: 20px; text-align: center; }
+.scroll-speed-ctrl input[type="range"] { width: 80px; accent-color: var(--accent); }
+
 .control-btn { padding: 10px 14px; border-color: var(--border); background: rgba(255,255,255,.025); display: flex; align-items: center; gap: 7px; font-size: 13px; }
 .control-btn svg { width: 17px; }
 .control-btn:hover { background: rgba(255,255,255,.055); }
@@ -314,23 +324,44 @@ body.fullscreen-mode .stage-controls { height: 90px; }
         </div>
 
         <div class="stage-controls">
-          <button class="control-btn" id="backBtn" type="button" title="向前回退一句">
-            <svg viewBox="0 0 24 24" fill="none"><path d="M9 7 4 12l5 5M20 7l-8 5 8 5V7Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
-            回退
-          </button>
-          <button class="main-control-btn" id="startBtn" type="button">
-            <svg class="mic-icon" viewBox="0 0 24 24" fill="none"><path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 1 0 6 0V6a3 3 0 0 0-3-3Z" stroke="currentColor" stroke-width="1.8"/><path d="M6.5 11.5v.5a5.5 5.5 0 0 0 11 0v-.5M12 17.5V21M9 21h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-            <span id="startBtnText">开始跟读</span>
-            <kbd>Space</kbd>
-          </button>
-          <button class="control-btn" id="forwardBtn" type="button" title="向后跳一句">
-            跳过
-            <svg viewBox="0 0 24 24" fill="none"><path d="m15 7 5 5-5 5M4 7l8 5-8 5V7Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
-          </button>
-          <button class="control-btn" id="resetBtn" type="button">
-            <svg viewBox="0 0 24 24" fill="none"><path d="M4 12a8 8 0 1 0 2.34-5.66L4 8.67M4 4v4.67h4.67" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            重置
-          </button>
+          <div class="mode-switch" id="modeSwitch">
+            <button class="mode-btn active" data-mode="voice" type="button">🎙️ 语音跟随</button>
+            <button class="mode-btn" data-mode="scroll" type="button">📜 自动滚动</button>
+          </div>
+          <div class="control-row" id="voiceControls">
+            <button class="control-btn" id="backBtn" type="button" title="向前回退一句">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M9 7 4 12l5 5M20 7l-8 5 8 5V7Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+              回退
+            </button>
+            <button class="main-control-btn" id="startBtn" type="button">
+              <svg class="mic-icon" viewBox="0 0 24 24" fill="none"><path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 1 0 6 0V6a3 3 0 0 0-3-3Z" stroke="currentColor" stroke-width="1.8"/><path d="M6.5 11.5v.5a5.5 5.5 0 0 0 11 0v-.5M12 17.5V21M9 21h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+              <span id="startBtnText">开始跟读</span>
+              <kbd>Space</kbd>
+            </button>
+            <button class="control-btn" id="forwardBtn" type="button" title="向后跳一句">
+              跳过
+              <svg viewBox="0 0 24 24" fill="none"><path d="m15 7 5 5-5 5M4 7l8 5-8 5V7Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+            </button>
+            <button class="control-btn" id="resetBtn" type="button">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M4 12a8 8 0 1 0 2.34-5.66L4 8.67M4 4v4.67h4.67" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              重置
+            </button>
+          </div>
+          <div class="control-row" id="scrollControls" style="display:none;">
+            <button class="control-btn" id="scrollResetBtn" type="button">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M4 12a8 8 0 1 0 2.34-5.66L4 8.67M4 4v4.67h4.67" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              重置
+            </button>
+            <button class="main-control-btn" id="scrollStartBtn" type="button">
+              ▶️ 开始滚动
+              <kbd>Space</kbd>
+            </button>
+            <div class="scroll-speed-ctrl">
+              <span class="scroll-speed-label">速度</span>
+              <input id="scrollSpeedRange" type="range" min="1" max="10" value="3" />
+              <span class="scroll-speed-value" id="scrollSpeedValue">3</span>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -556,7 +587,10 @@ body.fullscreen-mode .stage-controls { height: 90px; }
     summaryCoverage: $('summaryCoverage'), summaryAccuracyBar: $('summaryAccuracyBar'),
     summaryTitle: $('summaryTitle'), summarySubtitle: $('summarySubtitle'),
     autoScrollToggle: $('autoScrollToggle'), scrollPosSelect: $('scrollPosSelect'), scrollPosValue: $('scrollPosValue'),
-    showGuideToggle: $('showGuideToggle'), readingGuide: $('readingGuide')
+    showGuideToggle: $('showGuideToggle'), readingGuide: $('readingGuide'),
+    modeSwitch: $('modeSwitch'), voiceControls: $('voiceControls'), scrollControls: $('scrollControls'),
+    scrollStartBtn: $('scrollStartBtn'), scrollResetBtn: $('scrollResetBtn'),
+    scrollSpeedRange: $('scrollSpeedRange'), scrollSpeedValue: $('scrollSpeedValue')
   };
 
   const sample = `大家好，今天我想跟大家分享一个特别实用的小工具。\n\n它不是普通的自动滚动提词器，而是会听你说话。你念到哪里，它就跟到哪里；你停下来，它也会停下来。\n\n就算中间漏掉几个字，或者临时换了一个说法，它也会尽量找到你现在的位置。\n\n这样拍口播视频的时候，就不用一边担心语速，一边疯狂追着提词板跑了。`;
@@ -594,6 +628,11 @@ body.fullscreen-mode .stage-controls { height: 90px; }
   let showGuide = true;         // 显示阅读引导线
   let highlightColor = '#ffd447'; // 高亮颜色
   let textColor = '#f4f6fa';    // 文字颜色
+  // 自动滚动模式
+  let currentMode = 'voice'; // 'voice' | 'scroll'
+  let isAutoScrolling = false;
+  let autoScrollTimer = null;
+  let scrollSpeed = 3; // 1-10
 
   const punctuationRE = /[\s\p{P}\p{S}]/u;
 
@@ -1122,7 +1161,7 @@ body.fullscreen-mode .stage-controls { height: 90px; }
   document.addEventListener('keydown', (e) => {
     const typing = ['TEXTAREA', 'INPUT', 'SELECT'].includes(document.activeElement?.tagName);
     if (typing) return;
-    if (e.code === 'Space') { e.preventDefault(); toggleListening(); }
+    if (e.code === 'Space') { e.preventDefault(); if (currentMode === 'scroll') toggleAutoScroll(); else toggleListening(); }
     else if (e.key === 'ArrowRight') { e.preventDefault(); moveBySentence(1); }
     else if (e.key === 'ArrowLeft') { e.preventDefault(); moveBySentence(-1); }
     else if (e.key.toLowerCase() === 'f') { e.preventDefault(); toggleFullscreen(); }
@@ -1187,6 +1226,70 @@ body.fullscreen-mode .stage-controls { height: 90px; }
     startListening();
   });
   els.summaryOverlay.addEventListener('click', function(e) { if (e.target === els.summaryOverlay) hideSummary(); });
+
+  // ===== 自动滚动模式 =====
+  function switchMode(mode) {
+    currentMode = mode;
+    document.querySelectorAll('.mode-btn').forEach(function(btn) {
+      btn.classList.toggle('active', btn.dataset.mode === mode);
+    });
+    if (mode === 'voice') {
+      els.voiceControls.style.display = '';
+      els.scrollControls.style.display = 'none';
+      stopAutoScroll();
+    } else {
+      els.voiceControls.style.display = 'none';
+      els.scrollControls.style.display = '';
+      stopListening();
+    }
+  }
+
+  function startAutoScroll() {
+    if (isAutoScrolling) return;
+    if (!els.scriptInput.value.trim()) { toast('先粘贴一段文案。'); return; }
+    isAutoScrolling = true;
+    els.scrollStartBtn.innerHTML = '⏸️ 暂停滚动 <kbd>Space</kbd>';
+    els.scrollStartBtn.classList.add('listening');
+    var pxPerFrame = 0.3 + (scrollSpeed - 1) * 0.5;
+    function tick() {
+      if (!isAutoScrolling) return;
+      var scroll = els.promptScroll;
+      scroll.scrollTop += pxPerFrame;
+      if (scroll.scrollTop >= scroll.scrollHeight - scroll.clientHeight - 2) {
+        stopAutoScroll();
+        toast('已滚动到末尾');
+        return;
+      }
+      autoScrollTimer = requestAnimationFrame(tick);
+    }
+    autoScrollTimer = requestAnimationFrame(tick);
+  }
+
+  function stopAutoScroll() {
+    isAutoScrolling = false;
+    if (autoScrollTimer) { cancelAnimationFrame(autoScrollTimer); autoScrollTimer = null; }
+    els.scrollStartBtn.innerHTML = '▶️ 开始滚动 <kbd>Space</kbd>';
+    els.scrollStartBtn.classList.remove('listening');
+  }
+
+  function toggleAutoScroll() {
+    if (isAutoScrolling) stopAutoScroll(); else startAutoScroll();
+  }
+
+  function resetScroll() {
+    stopAutoScroll();
+    els.promptScroll.scrollTop = 0;
+  }
+
+  document.querySelectorAll('.mode-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() { switchMode(btn.dataset.mode); });
+  });
+  els.scrollStartBtn.addEventListener('click', toggleAutoScroll);
+  els.scrollResetBtn.addEventListener('click', resetScroll);
+  els.scrollSpeedRange.addEventListener('input', function() {
+    scrollSpeed = Number(els.scrollSpeedRange.value);
+    els.scrollSpeedValue.textContent = String(scrollSpeed);
+  });
 
   // Useful for local QA and demos without requiring a microphone: ?demo=1
   if (new URLSearchParams(location.search).get('demo') === '1') {
