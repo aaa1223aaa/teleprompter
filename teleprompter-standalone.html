@@ -1,0 +1,1134 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#07101d" />
+    <meta name="description" content="语音跟随提词器：说到哪里，高亮跟到哪里。" />
+    <title>跟嘴走 · 语音跟随提词器</title>
+    <style>
+:root {
+  color-scheme: dark;
+  --bg: #070c14;
+  --surface: rgba(12, 20, 34, 0.86);
+  --surface-2: #101a2b;
+  --surface-3: #151f31;
+  --border: rgba(151, 173, 206, 0.16);
+  --border-strong: rgba(151, 173, 206, 0.28);
+  --text: #f7f9fd;
+  --muted: #8e9bb0;
+  --muted-2: #566276;
+  --accent: #6f7cff;
+  --accent-2: #58e2d0;
+  --good: #29df8d;
+  --warn: #ffd447;
+  --danger: #ff6175;
+  --prompt-size: 54px;
+  --prompt-line: 1.65;
+  font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+
+* { box-sizing: border-box; }
+html { background: var(--bg); }
+body {
+  margin: 0;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 10% 0%, rgba(67, 111, 255, .11), transparent 30%),
+    radial-gradient(circle at 90% 8%, rgba(49, 224, 198, .06), transparent 26%),
+    var(--bg);
+  color: var(--text);
+}
+button, textarea, select, input { font: inherit; }
+button { cursor: pointer; }
+
+.ambient { position: fixed; pointer-events: none; filter: blur(80px); opacity: .26; z-index: -1; }
+.ambient-a { width: 360px; height: 360px; background: #446dff; left: -180px; top: 10%; }
+.ambient-b { width: 300px; height: 300px; background: #35d4b9; right: -150px; top: 45%; }
+
+.app-shell { width: min(1480px, calc(100% - 32px)); margin: 20px auto 40px; }
+.topbar {
+  height: 72px; display: flex; align-items: center; justify-content: space-between;
+  padding: 0 20px 0 18px; border: 1px solid var(--border); border-radius: 16px 16px 0 0;
+  background: rgba(7, 13, 23, .78); backdrop-filter: blur(18px); position: sticky; top: 0; z-index: 20;
+}
+.brand { display: flex; align-items: center; gap: 12px; }
+.brand-mark { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 11px; color: var(--accent-2); background: rgba(88, 226, 208, .08); border: 1px solid rgba(88, 226, 208, .16); }
+.brand-mark svg { width: 22px; }
+.brand-title { font-size: 17px; font-weight: 750; letter-spacing: .02em; }
+.brand-subtitle { margin-top: 2px; font-size: 11px; color: var(--muted); letter-spacing: .08em; }
+.top-actions { display: flex; align-items: center; gap: 8px; }
+.ghost-btn, .primary-outline-btn, .secondary-btn, .danger-ghost-btn, .control-btn {
+  border: 1px solid transparent; color: #d9e0ec; background: transparent; border-radius: 10px; transition: .18s ease;
+}
+.ghost-btn { padding: 10px 12px; }
+.ghost-btn:hover { background: rgba(255,255,255,.045); color: #fff; }
+.primary-outline-btn { padding: 10px 14px; background: rgba(255,255,255,.035); border-color: var(--border); display: flex; align-items: center; gap: 8px; }
+.primary-outline-btn:hover { border-color: rgba(111,124,255,.55); background: rgba(111,124,255,.08); }
+.primary-outline-btn svg { width: 18px; }
+
+.teleprompter-panel {
+  border: 1px solid var(--border); border-top: 0; background: rgba(5, 10, 18, .76); min-height: 640px; overflow: hidden;
+}
+.status-row { height: 76px; display: flex; align-items: center; justify-content: space-between; padding: 0 28px; border-bottom: 1px solid rgba(255,255,255,.03); }
+.listen-card { display: inline-flex; align-items: center; gap: 10px; min-width: 176px; color: #aab5c7; font-size: 13px; }
+.listen-card.active { color: #dfffee; }
+.status-dot { width: 8px; height: 8px; border-radius: 50%; background: #5d6879; box-shadow: 0 0 0 0 rgba(41,223,141,0); transition: .2s; }
+.listen-card.active .status-dot { background: var(--good); animation: pulse 1.7s infinite; }
+@keyframes pulse { 50% { box-shadow: 0 0 0 7px rgba(41,223,141,0); } 0%, 100% { box-shadow: 0 0 0 0 rgba(41,223,141,.22); } }
+.wave { display: flex; align-items: center; gap: 3px; height: 24px; margin-left: 8px; opacity: .38; }
+.wave i { width: 3px; height: 5px; border-radius: 2px; background: var(--accent-2); }
+.listen-card.active .wave { opacity: 1; }
+.listen-card.active .wave i { animation: wave 1s ease-in-out infinite; }
+.listen-card.active .wave i:nth-child(2) { animation-delay: -.8s; } .listen-card.active .wave i:nth-child(3) { animation-delay: -.6s; } .listen-card.active .wave i:nth-child(4) { animation-delay: -.4s; } .listen-card.active .wave i:nth-child(5) { animation-delay: -.2s; }
+@keyframes wave { 0%,100% { height: 5px; } 50% { height: 21px; } }
+.status-right { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--muted); }
+.status-right span { padding: 7px 10px; border: 1px solid var(--border); border-radius: 8px; background: rgba(255,255,255,.025); }
+
+.prompt-stage { position: relative; height: 560px; outline: none; overflow: hidden; }
+.prompt-stage::before, .prompt-stage::after { content: ""; position: absolute; left: 0; right: 0; height: 105px; z-index: 4; pointer-events: none; }
+.prompt-stage::before { top: 0; background: linear-gradient(to bottom, rgba(5,10,18,.98), rgba(5,10,18,0)); }
+.prompt-stage::after { bottom: 0; background: linear-gradient(to top, rgba(5,10,18,.98), rgba(5,10,18,0)); }
+.reading-guide { position: absolute; z-index: 2; left: 5%; right: 5%; top: 50%; height: 94px; transform: translateY(-50%); border-left: 2px solid rgba(111,124,255,.62); background: linear-gradient(90deg, rgba(111,124,255,.055), transparent 70%); pointer-events: none; }
+.prompt-scroll { height: 100%; overflow: auto; scrollbar-width: none; scroll-behavior: smooth; padding: 205px 8% 230px; }
+.prompt-scroll::-webkit-scrollbar { display: none; }
+.prompt-text { font-size: var(--prompt-size); line-height: var(--prompt-line); font-weight: 620; letter-spacing: .025em; white-space: pre-wrap; word-break: break-word; transform-origin: center; transition: transform .2s ease; }
+.prompt-text.mirrored { transform: scaleX(-1); }
+.prompt-char { color: #31394a; transition: color .14s ease, opacity .14s ease, text-shadow .14s ease; }
+.prompt-char.read { color: #4b5362; }
+.prompt-char.current { color: var(--warn); text-shadow: 0 0 28px rgba(255, 212, 71, .18); }
+.prompt-char.upcoming { color: #f4f6fa; }
+.prompt-text.hide-read .prompt-char.read { opacity: 0; }
+.empty-state { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; text-align: center; padding: 40px; z-index: 3; }
+.empty-state.hidden { display: none; }
+.empty-orb { width: 58px; height: 58px; border-radius: 18px; display: grid; place-items: center; color: var(--accent-2); background: rgba(88,226,208,.07); border: 1px solid rgba(88,226,208,.16); margin-bottom: 18px; }
+.empty-orb svg { width: 26px; }
+.empty-state h2 { font-size: 22px; margin: 0 0 8px; }
+.empty-state p { margin: 0; color: var(--muted); font-size: 14px; }
+.stage-controls { height: 82px; border-top: 1px solid rgba(255,255,255,.04); display: flex; align-items: center; justify-content: center; gap: 10px; }
+.control-btn { padding: 10px 14px; border-color: var(--border); background: rgba(255,255,255,.025); display: flex; align-items: center; gap: 7px; font-size: 13px; }
+.control-btn svg { width: 17px; }
+.control-btn:hover { background: rgba(255,255,255,.055); }
+.main-control-btn { min-width: 190px; padding: 12px 16px; border: 1px solid rgba(111,124,255,.45); border-radius: 12px; background: linear-gradient(180deg, rgba(111,124,255,.19), rgba(111,124,255,.09)); color: #fff; display: inline-flex; align-items: center; justify-content: center; gap: 10px; box-shadow: inset 0 1px rgba(255,255,255,.08); }
+.main-control-btn.listening { border-color: rgba(41,223,141,.45); background: rgba(41,223,141,.12); }
+.main-control-btn .mic-icon { width: 18px; color: var(--accent-2); }
+kbd { font-family: inherit; font-size: 10px; color: var(--muted); background: rgba(255,255,255,.05); border: 1px solid var(--border); border-bottom-color: var(--border-strong); border-radius: 5px; padding: 3px 6px; }
+
+.workspace { margin-top: 14px; border: 1px solid var(--border); border-radius: 16px; overflow: hidden; background: linear-gradient(180deg, rgba(18,31,52,.86), rgba(12,21,35,.9)); }
+.tabs { height: 56px; display: flex; align-items: end; gap: 4px; padding: 0 18px; border-bottom: 1px solid var(--border); }
+.tab { height: 44px; min-width: 78px; border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--muted); }
+.tab.active { color: #fff; border-bottom-color: var(--accent); }
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+.editor-grid { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(300px, .75fr); gap: 28px; padding: 24px; }
+.section-label-row { display: flex; justify-content: space-between; align-items: center; color: #e6ebf3; font-size: 13px; margin-bottom: 9px; }
+.section-label-row span { color: var(--muted); font-size: 11px; }
+textarea { width: 100%; min-height: 238px; resize: vertical; padding: 16px; color: #e9edf5; background: rgba(3,8,15,.55); border: 1px solid var(--border); border-radius: 12px; outline: none; line-height: 1.75; }
+textarea:focus, select:focus { border-color: rgba(111,124,255,.58); box-shadow: 0 0 0 3px rgba(111,124,255,.08); }
+.editor-actions { display: flex; gap: 8px; margin-top: 10px; }
+.secondary-btn, .danger-ghost-btn { padding: 9px 12px; border-color: var(--border); background: rgba(255,255,255,.025); font-size: 12px; }
+.secondary-btn:hover { background: rgba(255,255,255,.055); }
+.danger-ghost-btn { color: #ff8d9a; margin-left: auto; }
+.setup-column { display: flex; flex-direction: column; gap: 12px; }
+.setting-card, .support-card { border: 1px solid var(--border); border-radius: 12px; padding: 14px; background: rgba(4,10,18,.4); }
+.setting-card { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+.setting-title { font-size: 13px; font-weight: 650; }
+.setting-desc { font-size: 11px; color: var(--muted); margin-top: 4px; }
+select { max-width: 170px; padding: 8px 32px 8px 10px; color: #dfe5ef; background: #101a2b; border: 1px solid var(--border); border-radius: 8px; outline: none; font-size: 12px; }
+.support-card { display: flex; align-items: center; gap: 11px; }
+.support-icon { width: 38px; height: 38px; border-radius: 10px; display: grid; place-items: center; color: var(--good); background: rgba(41,223,141,.08); border: 1px solid rgba(41,223,141,.16); flex: 0 0 auto; }
+.support-icon svg { width: 19px; }
+.support-card strong { font-size: 12px; }
+.support-card p { margin: 4px 0 0; color: var(--muted); font-size: 11px; line-height: 1.5; }
+.support-card.bad .support-icon { color: var(--danger); background: rgba(255,97,117,.08); border-color: rgba(255,97,117,.16); }
+.cta-btn { margin-top: auto; padding: 12px 16px; border: 1px solid rgba(41,223,141,.35); border-radius: 10px; color: #07150e; background: linear-gradient(180deg, #38e99a, #22c978); font-weight: 750; }
+.cta-btn:hover { filter: brightness(1.05); }
+
+.settings-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; padding: 24px; }
+.setting-block { min-height: 116px; padding: 17px; border: 1px solid var(--border); border-radius: 12px; background: rgba(4,10,18,.35); }
+.setting-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; font-size: 13px; }
+.setting-header strong { color: var(--accent-2); font-size: 12px; }
+input[type="range"] { width: 100%; accent-color: var(--accent); }
+.toggle-row { display: flex; align-items: center; justify-content: space-between; }
+.toggle-row > div > span { display: block; font-size: 13px; }
+.toggle-row small { display: block; color: var(--muted); margin-top: 5px; font-size: 11px; }
+.toggle { width: 44px; height: 24px; border: 0; border-radius: 999px; padding: 3px; background: #263147; transition: .18s; }
+.toggle span { display: block; width: 18px; height: 18px; border-radius: 50%; background: #c8d0dc; transition: .18s; }
+.toggle.on, .toggle[aria-pressed="true"] { background: var(--accent); }
+.toggle.on span, .toggle[aria-pressed="true"] span { transform: translateX(20px); background: white; }
+.setting-help { color: var(--muted); font-size: 11px; line-height: 1.55; margin: 10px 0 0; }
+.stats-block { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.stat { padding: 8px 10px; }
+.stat small { display: block; color: var(--muted); font-size: 11px; }
+.stat strong { display: block; margin-top: 7px; font-size: 22px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.workspace-footer { min-height: 48px; padding: 0 24px; border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 20px; color: var(--muted); font-size: 11px; }
+
+.shortcut-dialog { width: min(440px, calc(100vw - 32px)); padding: 0; color: var(--text); background: #101827; border: 1px solid var(--border-strong); border-radius: 16px; box-shadow: 0 24px 80px rgba(0,0,0,.45); }
+.shortcut-dialog::backdrop { background: rgba(0,0,0,.6); backdrop-filter: blur(4px); }
+.dialog-head { padding: 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+.dialog-head strong { display: block; font-size: 16px; }.dialog-head span { display: block; color: var(--muted); font-size: 11px; margin-top: 4px; }
+.dialog-head button { border: 0; background: transparent; color: var(--muted); font-size: 22px; }
+.shortcut-list { padding: 10px 18px 18px; }
+.shortcut-list div { min-height: 46px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,.045); font-size: 13px; }
+.toast { position: fixed; left: 50%; bottom: 28px; transform: translate(-50%, 18px); opacity: 0; pointer-events: none; z-index: 100; padding: 10px 14px; color: #fff; background: rgba(14,22,35,.96); border: 1px solid var(--border-strong); border-radius: 10px; box-shadow: 0 12px 40px rgba(0,0,0,.3); font-size: 12px; transition: .22s ease; }
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+.speed-display { display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px !important; border: 1px solid rgba(88,226,208,.25) !important; background: rgba(88,226,208,.06) !important; color: var(--accent-2); font-weight: 600; font-size: 13px; }
+.speed-display .speed-value { font-size: 16px; font-weight: 700; }
+.speed-display .speed-unit { font-size: 10px; color: var(--muted); }
+
+.summary-overlay { position: fixed; inset: 0; z-index: 200; display: none; align-items: center; justify-content: center; background: rgba(0,0,0,.7); backdrop-filter: blur(6px); }
+.summary-overlay.show { display: flex; }
+.summary-dialog { width: min(520px, calc(100vw - 40px)); background: #0d1520; border: 1px solid var(--border-strong); border-radius: 20px; box-shadow: 0 32px 100px rgba(0,0,0,.6); overflow: hidden; animation: summaryIn .35s ease; }
+@keyframes summaryIn { from { opacity: 0; transform: scale(.92) translateY(20px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+.summary-header { padding: 28px 28px 0; text-align: center; }
+.summary-header .done-icon { width: 64px; height: 64px; border-radius: 50%; display: inline-grid; place-items: center; background: rgba(41,223,141,.1); border: 2px solid rgba(41,223,141,.3); margin-bottom: 16px; color: var(--good); font-size: 28px; }
+.summary-header h2 { margin: 0 0 6px; font-size: 22px; font-weight: 750; }
+.summary-header p { margin: 0; color: var(--muted); font-size: 13px; }
+.summary-stats { padding: 24px 28px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.summary-stat { text-align: center; padding: 16px 8px; border: 1px solid var(--border); border-radius: 14px; background: rgba(255,255,255,.02); }
+.summary-stat .stat-icon { font-size: 22px; margin-bottom: 8px; }
+.summary-stat .stat-label { font-size: 11px; color: var(--muted); margin-bottom: 6px; }
+.summary-stat .stat-value { font-size: 24px; font-weight: 750; color: var(--text); }
+.summary-stat .stat-sub { font-size: 10px; color: var(--muted-2); margin-top: 4px; }
+.summary-detail { padding: 0 28px 8px; }
+.summary-detail-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,.04); font-size: 13px; }
+.summary-detail-row:last-child { border-bottom: 0; }
+.summary-detail-row .label { color: var(--muted); }
+.summary-detail-row .value { font-weight: 600; }
+.summary-detail-row .value.good { color: var(--good); }
+.summary-detail-row .value.warn { color: var(--warn); }
+.summary-accuracy-bar { margin: 0 28px 20px; height: 8px; border-radius: 4px; background: rgba(255,255,255,.06); overflow: hidden; }
+.summary-accuracy-bar .fill { height: 100%; border-radius: 4px; background: linear-gradient(90deg, var(--accent), var(--accent-2)); transition: width .6s ease; }
+.summary-footer { padding: 16px 28px 24px; display: flex; gap: 10px; justify-content: center; }
+.summary-footer button { padding: 12px 24px; border-radius: 10px; border: 1px solid var(--border); font-size: 13px; font-weight: 600; cursor: pointer; transition: .18s; }
+.summary-footer .summary-close { background: rgba(255,255,255,.06); color: var(--text); }
+.summary-footer .summary-close:hover { background: rgba(255,255,255,.1); }
+.summary-footer .summary-retry { background: linear-gradient(180deg, rgba(111,124,255,.2), rgba(111,124,255,.1)); border-color: rgba(111,124,255,.4); color: #fff; }
+.summary-footer .summary-retry:hover { background: linear-gradient(180deg, rgba(111,124,255,.3), rgba(111,124,255,.15)); }
+
+body.fullscreen-mode .topbar, body.fullscreen-mode .workspace { display: none; }
+body.fullscreen-mode .app-shell { width: 100%; margin: 0; }
+body.fullscreen-mode .teleprompter-panel { min-height: 100vh; border: 0; }
+body.fullscreen-mode .prompt-stage { height: calc(100vh - 158px); }
+body.fullscreen-mode .status-row { height: 68px; }
+body.fullscreen-mode .stage-controls { height: 90px; }
+
+@media (max-width: 860px) {
+  .app-shell { width: 100%; margin: 0; }
+  .topbar { border-radius: 0; border-left: 0; border-right: 0; padding: 0 14px; }
+  .brand-subtitle { display: none; }
+  .ghost-btn { display: none; }
+  .primary-outline-btn { padding: 9px 11px; font-size: 12px; }
+  .teleprompter-panel { border-left: 0; border-right: 0; min-height: auto; }
+  .status-row { padding: 0 16px; height: 62px; }
+  .match-status { display: none; }
+  .prompt-stage { height: 55vh; min-height: 360px; }
+  .prompt-scroll { padding: 165px 7% 190px; }
+  .prompt-text { font-size: clamp(34px, 8vw, var(--prompt-size)); }
+  .reading-guide { left: 3%; right: 3%; height: 80px; }
+  .stage-controls { position: sticky; bottom: 0; background: rgba(6,12,20,.94); z-index: 10; padding: 0 8px; }
+  .control-btn { padding: 10px; font-size: 0; }
+  .control-btn svg { width: 20px; }
+  .main-control-btn { min-width: 160px; }
+  .editor-grid, .settings-grid { grid-template-columns: 1fr; padding: 16px; }
+  .stats-block { grid-column: auto; grid-template-columns: 1fr; }
+  .workspace { margin-top: 8px; border-radius: 0; border-left: 0; border-right: 0; }
+  .workspace-footer { align-items: flex-start; flex-direction: column; padding: 12px 16px; }
+  textarea { min-height: 200px; }
+  .speed-display { font-size: 11px; padding: 5px 8px !important; }
+  .speed-display .speed-value { font-size: 13px; }
+  .speed-display .speed-unit { display: none; }
+  .status-row { flex-wrap: wrap; gap: 6px; }
+  .status-right { gap: 6px; width: 100%; justify-content: flex-end; }
+  .summary-dialog { border-radius: 14px; }
+  .summary-stats { grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 16px 14px; }
+  .summary-stat { padding: 10px 4px; }
+  .summary-stat .stat-value { font-size: 18px; }
+  .summary-header { padding: 20px 14px 0; }
+  .summary-detail { padding: 0 14px 8px; }
+  .summary-accuracy-bar { margin: 0 14px 14px; }
+  .summary-footer { padding: 12px 14px 18px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .001ms !important; transition-duration: .001ms !important; }
+}
+
+</style>
+  </head>
+  <body>
+    <div class="ambient ambient-a"></div>
+    <div class="ambient ambient-b"></div>
+
+    <main class="app-shell" id="app">
+      <header class="topbar">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 1 0 6 0V6a3 3 0 0 0-3-3Z" stroke="currentColor" stroke-width="1.8"/>
+              <path d="M6.5 11.5v.5a5.5 5.5 0 0 0 11 0v-.5M12 17.5V21M9 21h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div>
+            <div class="brand-title">跟嘴走</div>
+            <div class="brand-subtitle">语音跟随提词器</div>
+          </div>
+        </div>
+        <div class="top-actions">
+          <button class="ghost-btn" id="shortcutBtn" type="button">快捷键</button>
+          <button class="ghost-btn" id="mirrorBtn" type="button" aria-pressed="false">镜像</button>
+          <button class="primary-outline-btn" id="fullscreenBtn" type="button">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M8 3H4a1 1 0 0 0-1 1v4M16 3h4a1 1 0 0 1 1 1v4M8 21H4a1 1 0 0 1-1-1v-4M16 21h4a1 1 0 0 0 1-1v-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            全屏提词
+          </button>
+        </div>
+      </header>
+
+      <section class="teleprompter-panel" id="teleprompterPanel">
+        <div class="status-row">
+          <div class="listen-card" id="listenCard">
+            <span class="status-dot"></span>
+            <span id="listenText">等待开始</span>
+            <div class="wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          </div>
+          <div class="status-right">
+            <span class="speed-display" id="speedDisplay" title="实时语速"><span class="speed-value" id="speedValue">0</span><span class="speed-unit">字/分钟</span></span>
+            <span class="match-status" id="matchStatus">匹配：待机</span>
+            <span class="progress-status" id="progressStatus">0%</span>
+          </div>
+        </div>
+
+        <div class="prompt-stage" id="promptStage" tabindex="0" aria-label="提词内容">
+          <div class="reading-guide" aria-hidden="true"></div>
+          <div class="prompt-scroll" id="promptScroll">
+            <div class="prompt-text" id="promptText"></div>
+          </div>
+          <div class="empty-state" id="emptyState">
+            <div class="empty-orb">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 1 0 6 0V6a3 3 0 0 0-3-3Z" stroke="currentColor" stroke-width="1.7"/><path d="M6.5 11.5v.5a5.5 5.5 0 0 0 11 0v-.5M12 17.5V21" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+            </div>
+            <h2>把文案贴进来，嘴一开，字幕就跟上</h2>
+            <p>支持中文口播。轻微漏字、重复、停顿都不会轻易乱跳。</p>
+          </div>
+        </div>
+
+        <div class="stage-controls">
+          <button class="control-btn" id="backBtn" type="button" title="向前回退一句">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M9 7 4 12l5 5M20 7l-8 5 8 5V7Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+            回退
+          </button>
+          <button class="main-control-btn" id="startBtn" type="button">
+            <svg class="mic-icon" viewBox="0 0 24 24" fill="none"><path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 1 0 6 0V6a3 3 0 0 0-3-3Z" stroke="currentColor" stroke-width="1.8"/><path d="M6.5 11.5v.5a5.5 5.5 0 0 0 11 0v-.5M12 17.5V21M9 21h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            <span id="startBtnText">开始跟读</span>
+            <kbd>Space</kbd>
+          </button>
+          <button class="control-btn" id="forwardBtn" type="button" title="向后跳一句">
+            跳过
+            <svg viewBox="0 0 24 24" fill="none"><path d="m15 7 5 5-5 5M4 7l8 5-8 5V7Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+          </button>
+          <button class="control-btn" id="resetBtn" type="button">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M4 12a8 8 0 1 0 2.34-5.66L4 8.67M4 4v4.67h4.67" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            重置
+          </button>
+        </div>
+      </section>
+
+      <section class="workspace">
+        <div class="tabs" role="tablist">
+          <button class="tab active" data-tab="script" type="button">文案</button>
+          <button class="tab" data-tab="appearance" type="button">显示</button>
+          <button class="tab" data-tab="advanced" type="button">跟随</button>
+        </div>
+
+        <div class="tab-panel active" id="tab-script">
+          <div class="editor-grid">
+            <div class="editor-column">
+              <div class="section-label-row">
+                <label for="scriptInput">提词文案</label>
+                <span id="charCount">0 / 10000</span>
+              </div>
+              <textarea id="scriptInput" maxlength="10000" spellcheck="false" placeholder="把你的口播稿粘贴到这里……"></textarea>
+              <div class="editor-actions">
+                <button class="secondary-btn" id="sampleBtn" type="button">填入示例</button>
+                <button class="secondary-btn" id="importBtn" type="button">导入 TXT</button>
+                <input id="fileInput" type="file" accept=".txt,text/plain" hidden />
+                <button class="danger-ghost-btn" id="clearBtn" type="button">清空</button>
+              </div>
+            </div>
+
+            <aside class="setup-column">
+              <div class="setting-card">
+                <div>
+                  <div class="setting-title">语音识别语言</div>
+                  <div class="setting-desc">默认普通话，适合中文口播</div>
+                </div>
+                <select id="languageSelect" aria-label="语音识别语言">
+                  <option value="zh-CN">中文（普通话）</option>
+                  <option value="zh-HK">粤语（香港）</option>
+                  <option value="en-US">English (US)</option>
+                </select>
+              </div>
+              <div class="support-card" id="supportCard">
+                <div class="support-icon">
+                  <svg viewBox="0 0 24 24" fill="none"><path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 1 0 6 0V6a3 3 0 0 0-3-3Z" stroke="currentColor" stroke-width="1.7"/><path d="M6.5 11.5v.5a5.5 5.5 0 0 0 11 0v-.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+                </div>
+                <div>
+                  <strong id="supportTitle">正在检测浏览器…</strong>
+                  <p id="supportDesc">首次开始时浏览器会请求麦克风权限。</p>
+                </div>
+              </div>
+              <button class="cta-btn" id="sideStartBtn" type="button">开始跟读</button>
+            </aside>
+          </div>
+        </div>
+
+        <div class="tab-panel" id="tab-appearance">
+          <div class="settings-grid">
+            <div class="setting-block">
+              <div class="setting-header"><span>字号</span><strong id="fontSizeValue">54px</strong></div>
+              <input id="fontSizeRange" type="range" min="28" max="92" value="54" />
+            </div>
+            <div class="setting-block">
+              <div class="setting-header"><span>行距</span><strong id="lineHeightValue">1.65</strong></div>
+              <input id="lineHeightRange" type="range" min="120" max="220" value="165" />
+            </div>
+            <div class="setting-block toggle-row">
+              <div><span>隐藏已读内容</span><small>只保留当前与后续文字</small></div>
+              <button class="toggle" id="hideReadToggle" aria-pressed="false" type="button"><span></span></button>
+            </div>
+            <div class="setting-block toggle-row">
+              <div><span>镜像显示</span><small>适合搭配物理提词器反射玻璃</small></div>
+              <button class="toggle" id="mirrorToggle" aria-pressed="false" type="button"><span></span></button>
+            </div>
+          </div>
+        </div>
+
+        <div class="tab-panel" id="tab-advanced">
+          <div class="settings-grid">
+            <div class="setting-block">
+              <div class="setting-header"><span>跟随灵敏度</span><strong id="sensitivityValue">均衡</strong></div>
+              <input id="sensitivityRange" type="range" min="1" max="3" value="2" />
+              <p class="setting-help">越高越容易跟上口误和跳词，但也更容易误匹配。</p>
+            </div>
+            <div class="setting-block toggle-row">
+              <div><span>自动保持聆听</span><small>识别服务中断后自动重启</small></div>
+              <button class="toggle on" id="autoRestartToggle" aria-pressed="true" type="button"><span></span></button>
+            </div>
+            <div class="setting-block stats-block">
+              <div class="stat"><small>当前字数</small><strong id="currentCharStat">0</strong></div>
+              <div class="stat"><small>已读比例</small><strong id="readPercentStat">0%</strong></div>
+              <div class="stat"><small>最近识别</small><strong id="lastHeardStat">—</strong></div>
+            </div>
+          </div>
+        </div>
+
+        <footer class="workspace-footer">
+          <span>🔒 文案与语音仅在你的浏览器中处理，不上传服务器。</span>
+          <span>建议使用最新版 Chrome / Edge，并通过 HTTPS 或 localhost 打开。</span>
+        </footer>
+      </section>
+    </main>
+
+    <dialog id="shortcutDialog" class="shortcut-dialog">
+      <div class="dialog-head">
+        <div><strong>快捷键</strong><span>拍摄时不用低头找按钮</span></div>
+        <button id="closeShortcutBtn" type="button" aria-label="关闭">×</button>
+      </div>
+      <div class="shortcut-list">
+        <div><span>开始 / 暂停识别</span><kbd>Space</kbd></div>
+        <div><span>向后跳一句</span><kbd>→</kbd></div>
+        <div><span>向前回一句</span><kbd>←</kbd></div>
+        <div><span>全屏</span><kbd>F</kbd></div>
+        <div><span>退出全屏</span><kbd>Esc</kbd></div>
+      </div>
+    </dialog>
+
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <div class="summary-overlay" id="summaryOverlay">
+      <div class="summary-dialog">
+        <div class="summary-header">
+          <div class="done-icon">✓</div>
+          <h2 id="summaryTitle">朗读完成</h2>
+          <p id="summarySubtitle">以下是本次朗读的数据报告</p>
+        </div>
+        <div class="summary-stats">
+          <div class="summary-stat">
+            <div class="stat-icon">📝</div>
+            <div class="stat-label">已读字数</div>
+            <div class="stat-value" id="summaryCharCount">0</div>
+            <div class="stat-sub" id="summaryCharSub">共 0 字</div>
+          </div>
+          <div class="summary-stat">
+            <div class="stat-icon">⏱️</div>
+            <div class="stat-label">朗读时长</div>
+            <div class="stat-value" id="summaryDuration">0s</div>
+            <div class="stat-sub" id="summaryDurationSub">0 分 0 秒</div>
+          </div>
+          <div class="summary-stat">
+            <div class="stat-icon">🚀</div>
+            <div class="stat-label">平均语速</div>
+            <div class="stat-value" id="summarySpeed">0</div>
+            <div class="stat-sub">字/分钟</div>
+          </div>
+        </div>
+        <div class="summary-accuracy-bar"><div class="fill" id="summaryAccuracyBar" style="width:0"></div></div>
+        <div class="summary-detail">
+          <div class="summary-detail-row">
+            <span class="label">精准匹配</span>
+            <span class="value good" id="summaryExactCount">0 次</span>
+          </div>
+          <div class="summary-detail-row">
+            <span class="label">模糊匹配</span>
+            <span class="value warn" id="summaryFuzzyCount">0 次</span>
+          </div>
+          <div class="summary-detail-row">
+            <span class="label">平均匹配置信度</span>
+            <span class="value" id="summaryAvgConfidence">0%</span>
+          </div>
+          <div class="summary-detail-row">
+            <span class="label">覆盖率</span>
+            <span class="value good" id="summaryCoverage">0%</span>
+          </div>
+        </div>
+        <div class="summary-footer">
+          <button class="summary-close" id="summaryCloseBtn" type="button">关闭</button>
+          <button class="summary-retry" id="summaryRetryBtn" type="button">重新朗读</button>
+        </div>
+      </div>
+    </div>
+    <script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const els = {
+    scriptInput: $('scriptInput'), promptText: $('promptText'), promptScroll: $('promptScroll'), emptyState: $('emptyState'),
+    charCount: $('charCount'), startBtn: $('startBtn'), startBtnText: $('startBtnText'), sideStartBtn: $('sideStartBtn'),
+    listenCard: $('listenCard'), listenText: $('listenText'), matchStatus: $('matchStatus'), progressStatus: $('progressStatus'),
+    resetBtn: $('resetBtn'), backBtn: $('backBtn'), forwardBtn: $('forwardBtn'), fullscreenBtn: $('fullscreenBtn'),
+    mirrorBtn: $('mirrorBtn'), mirrorToggle: $('mirrorToggle'), hideReadToggle: $('hideReadToggle'), autoRestartToggle: $('autoRestartToggle'),
+    fontSizeRange: $('fontSizeRange'), fontSizeValue: $('fontSizeValue'), lineHeightRange: $('lineHeightRange'), lineHeightValue: $('lineHeightValue'),
+    sensitivityRange: $('sensitivityRange'), sensitivityValue: $('sensitivityValue'), languageSelect: $('languageSelect'),
+    supportCard: $('supportCard'), supportTitle: $('supportTitle'), supportDesc: $('supportDesc'),
+    currentCharStat: $('currentCharStat'), readPercentStat: $('readPercentStat'), lastHeardStat: $('lastHeardStat'),
+    sampleBtn: $('sampleBtn'), clearBtn: $('clearBtn'), importBtn: $('importBtn'), fileInput: $('fileInput'),
+    shortcutBtn: $('shortcutBtn'), shortcutDialog: $('shortcutDialog'), closeShortcutBtn: $('closeShortcutBtn'), toast: $('toast'),
+    speedValue: $('speedValue'), summaryOverlay: $('summaryOverlay'),
+    summaryCloseBtn: $('summaryCloseBtn'), summaryRetryBtn: $('summaryRetryBtn'),
+    summaryCharCount: $('summaryCharCount'), summaryCharSub: $('summaryCharSub'),
+    summaryDuration: $('summaryDuration'), summaryDurationSub: $('summaryDurationSub'),
+    summarySpeed: $('summarySpeed'), summaryExactCount: $('summaryExactCount'),
+    summaryFuzzyCount: $('summaryFuzzyCount'), summaryAvgConfidence: $('summaryAvgConfidence'),
+    summaryCoverage: $('summaryCoverage'), summaryAccuracyBar: $('summaryAccuracyBar'),
+    summaryTitle: $('summaryTitle'), summarySubtitle: $('summarySubtitle')
+  };
+
+  const sample = `大家好，今天我想跟大家分享一个特别实用的小工具。\n\n它不是普通的自动滚动提词器，而是会听你说话。你念到哪里，它就跟到哪里；你停下来，它也会停下来。\n\n就算中间漏掉几个字，或者临时换了一个说法，它也会尽量找到你现在的位置。\n\n这样拍口播视频的时候，就不用一边担心语速，一边疯狂追着提词板跑了。`;
+
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  let recognition = null;
+  let isListening = false;
+  let shouldListen = false;
+  let currentOriginalIndex = 0;
+  let normalized = '';
+  let normToOriginal = [];
+  let originalToNorm = [];
+  let charSpans = [];
+  let toastTimer = null;
+  let hideRead = false;
+  let mirrored = false;
+  let autoRestart = true;
+  let currentSensitivity = 2;
+  let recentFinal = '';
+  let lastInterim = '';
+  let lastRenderedIndex = -1;
+  // 语速追踪
+  let listenStartTime = 0;
+  let lastSpeedCalcTime = 0;
+  let lastSpeedCalcIndex = 0;
+  // 匹配统计
+  let exactMatchCount = 0;
+  let fuzzyMatchCount = 0;
+  let totalConfidence = 0;
+  let matchCount = 0;
+  let summaryShown = false;
+
+  const punctuationRE = /[\s\p{P}\p{S}]/u;
+
+  function normalizeWithMap(text) {
+    let out = '';
+    const n2o = [];
+    const o2n = new Array(text.length).fill(-1);
+    for (let i = 0; i < text.length; i++) {
+      const c = text[i];
+      if (punctuationRE.test(c)) continue;
+      const normalizedChar = c.toLowerCase();
+      for (const nc of normalizedChar) {
+        o2n[i] = out.length;
+        out += nc;
+        n2o.push(i);
+      }
+    }
+    return { normalized: out, normToOriginal: n2o, originalToNorm: o2n };
+  }
+
+  function normalizeSpeech(text) {
+    return (text || '').toLowerCase().split('').filter(c => !punctuationRE.test(c)).join('');
+  }
+
+  function levenshteinSimilarity(a, b) {
+    if (!a.length || !b.length) return 0;
+    const prev = new Array(b.length + 1);
+    const curr = new Array(b.length + 1);
+    for (let j = 0; j <= b.length; j++) prev[j] = j;
+    for (let i = 1; i <= a.length; i++) {
+      curr[0] = i;
+      for (let j = 1; j <= b.length; j++) {
+        const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+        curr[j] = Math.min(prev[j] + 1, curr[j - 1] + 1, prev[j - 1] + cost);
+      }
+      for (let j = 0; j <= b.length; j++) prev[j] = curr[j];
+    }
+    return 1 - prev[b.length] / Math.max(a.length, b.length);
+  }
+
+  function getCurrentNormIndex() {
+    if (!normalized.length) return 0;
+    for (let i = Math.min(currentOriginalIndex, originalToNorm.length - 1); i < originalToNorm.length; i++) {
+      if (originalToNorm[i] >= 0) return originalToNorm[i];
+    }
+    return normalized.length;
+  }
+
+  function findBestProgress(transcript) {
+    const spoken = normalizeSpeech(transcript);
+    if (!spoken || !normalized) return null;
+
+    const tailLength = currentSensitivity === 1 ? 12 : currentSensitivity === 2 ? 18 : 26;
+    const tail = spoken.slice(-tailLength);
+    if (tail.length < 2) return null;
+
+    const curNorm = getCurrentNormIndex();
+    const backtrack = currentSensitivity === 1 ? 8 : currentSensitivity === 2 ? 14 : 22;
+    const forwardWindow = currentSensitivity === 1 ? 80 : currentSensitivity === 2 ? 140 : 220;
+    const searchStart = Math.max(0, curNorm - backtrack);
+    const searchEnd = Math.min(normalized.length, curNorm + forwardWindow);
+
+    // Exact suffix match is extremely reliable and cheap.
+    for (let exactLen = Math.min(10, tail.length); exactLen >= 4; exactLen--) {
+      const needle = tail.slice(-exactLen);
+      const idx = normalized.indexOf(needle, searchStart);
+      if (idx >= 0 && idx < searchEnd) {
+        return { normIndex: idx + exactLen, score: .98, mode: '精准' };
+      }
+    }
+
+    // Fuzzy window matching for speech recognition substitutions / omissions.
+    const minLen = Math.max(2, tail.length - 4);
+    const maxLen = Math.min(tail.length + 4, 30);
+    let best = { score: 0, normIndex: curNorm, mode: '模糊' };
+    const step = tail.length > 20 ? 2 : 1;
+    for (let start = searchStart; start < searchEnd; start += step) {
+      // 早停: 如果已经找到高分匹配(>0.85)，不需要继续搜索
+      if (best.score > .85) break;
+      for (let len = minLen; len <= maxLen; len += 2) {
+        const end = start + len;
+        if (end > normalized.length || end > searchEnd + maxLen) continue;
+        const candidate = normalized.slice(start, end);
+        const sim = levenshteinSimilarity(tail, candidate);
+        // 快速跳过：如果当前sim已经低于best，不用算bonus
+        if (sim < best.score - .1) continue;
+        const distance = Math.max(0, start - curNorm);
+        const proximityBonus = Math.max(0, .08 - distance / 1700);
+        const regressionPenalty = start + len < curNorm ? .14 : 0;
+        const score = sim + proximityBonus - regressionPenalty;
+        if (score > best.score) best = { score, normIndex: end, mode: '模糊' };
+      }
+    }
+
+    const threshold = currentSensitivity === 1 ? .69 : currentSensitivity === 2 ? .59 : .51;
+    return best.score >= threshold ? best : null;
+  }
+
+  function applyTranscript(transcript, isFinal = false) {
+    if (!transcript.trim()) return;
+    els.lastHeardStat.textContent = transcript.trim().slice(-18);
+    const result = findBestProgress(transcript);
+    if (!result) {
+      els.matchStatus.textContent = '匹配：寻找中…';
+      return;
+    }
+
+    const mapped = normToOriginal[Math.min(result.normIndex - 1, normToOriginal.length - 1)];
+    if (typeof mapped !== 'number') return;
+    const candidateOriginal = mapped + 1;
+    // Monotonic progress prevents jumping backwards when recognition revises interim text.
+    if (candidateOriginal > currentOriginalIndex) {
+      currentOriginalIndex = candidateOriginal;
+      renderProgress(true);
+    }
+    els.matchStatus.textContent = `匹配：${result.mode} ${Math.round(result.score * 100)}%`;
+
+    // 匹配统计
+    if (isFinal) {
+      if (result.mode === '精准') exactMatchCount++;
+      else fuzzyMatchCount++;
+      totalConfidence += result.score;
+      matchCount++;
+    }
+
+    // 实时语速计算（每秒更新一次）
+    const now = Date.now();
+    if (listenStartTime > 0 && now - lastSpeedCalcTime >= 800) {
+      const elapsedMin = (now - listenStartTime) / 60000;
+      const charsRead = Math.max(0, currentOriginalIndex);
+      if (elapsedMin > 0.05) {
+        const cpm = Math.round(charsRead / elapsedMin);
+        els.speedValue.textContent = String(cpm);
+      }
+      lastSpeedCalcTime = now;
+    }
+
+    // 检测是否读完全文
+    const totalChars = els.scriptInput.value.length;
+    if (isFinal && currentOriginalIndex >= totalChars - 1 && totalChars > 0 && !summaryShown) {
+      summaryShown = true;
+      showSummary(totalChars);
+    }
+
+    if (isFinal) saveState();
+  }
+
+  function buildPrompt(text) {
+    const mapped = normalizeWithMap(text);
+    normalized = mapped.normalized;
+    normToOriginal = mapped.normToOriginal;
+    originalToNorm = mapped.originalToNorm;
+    els.promptText.innerHTML = '';
+    charSpans = [];
+
+    const fragment = document.createDocumentFragment();
+    for (let i = 0; i < text.length; i++) {
+      const span = document.createElement('span');
+      span.className = 'prompt-char upcoming';
+      span.textContent = text[i];
+      span.dataset.index = i;
+      fragment.appendChild(span);
+      charSpans.push(span);
+    }
+    els.promptText.appendChild(fragment);
+    els.emptyState.classList.toggle('hidden', !!text.trim());
+    currentOriginalIndex = Math.min(currentOriginalIndex, text.length);
+    renderProgress(false);
+  }
+
+  function getFocusIndex() {
+    const text = els.scriptInput.value;
+    if (!text.length) return 0;
+    let idx = Math.min(currentOriginalIndex, text.length - 1);
+    while (idx < text.length - 1 && punctuationRE.test(text[idx])) idx++;
+    return idx;
+  }
+
+  function renderProgress(shouldScroll) {
+    const text = els.scriptInput.value;
+    const focus = getFocusIndex();
+    const highlightEnd = Math.min(text.length, focus + 3);
+
+    charSpans.forEach((span, i) => {
+      span.classList.toggle('read', i < currentOriginalIndex);
+      span.classList.toggle('current', i >= focus && i < highlightEnd && i >= currentOriginalIndex);
+      span.classList.toggle('upcoming', i >= highlightEnd || (i >= currentOriginalIndex && i < focus));
+    });
+    els.promptText.classList.toggle('hide-read', hideRead);
+    els.promptText.classList.toggle('mirrored', mirrored);
+
+    const percent = text.length ? Math.min(100, Math.round((currentOriginalIndex / text.length) * 100)) : 0;
+    els.progressStatus.textContent = `${percent}%`;
+    els.readPercentStat.textContent = `${percent}%`;
+    els.currentCharStat.textContent = `${Math.min(currentOriginalIndex, text.length)} / ${text.length}`;
+
+    if (shouldScroll && charSpans[focus]) {
+      const target = charSpans[focus];
+      const scroll = els.promptScroll;
+      const targetCenter = target.offsetTop + target.offsetHeight / 2;
+      const desired = targetCenter - scroll.clientHeight / 2;
+      scroll.scrollTop = Math.max(0, desired);
+    }
+  }
+
+  function updateScript({ reset = false } = {}) {
+    const text = els.scriptInput.value;
+    els.charCount.textContent = `${text.length} / 10000`;
+    if (reset) currentOriginalIndex = 0;
+    buildPrompt(text);
+    saveState();
+  }
+
+  function setupRecognition() {
+    if (!SpeechRecognition) {
+      console.error('[语音识别] SpeechRecognition API 不可用');
+      return;
+    }
+
+    recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = els.languageSelect.value;
+
+    recognition.onstart = () => {
+      isListening = true;
+      updateListeningUI();
+    };
+
+    recognition.onresult = (event) => {
+      let finalChunk = '';
+      let interimChunk = '';
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const transcript = event.results[i][0]?.transcript || '';
+        if (event.results[i].isFinal) finalChunk += transcript;
+        else interimChunk += transcript;
+      }
+      if (finalChunk) {
+        recentFinal = (recentFinal + ' ' + finalChunk).trim().slice(-120);
+        applyTranscript(recentFinal, true);
+      }
+      if (interimChunk) {
+        lastInterim = interimChunk;
+        applyTranscript((recentFinal + ' ' + interimChunk).trim(), false);
+      }
+    };
+
+    recognition.onerror = (event) => {
+      const messages = {
+        'not-allowed': '麦克风权限被拒绝，请在浏览器地址栏允许麦克风。',
+        'audio-capture': '没有检测到可用麦克风。',
+        'network': '语音识别服务暂时不可用。',
+        'no-speech': '暂时没听到声音。'
+      };
+      if (event.error !== 'no-speech' && event.error !== 'aborted') toast(messages[event.error] || `识别错误：${event.error}`);
+      els.matchStatus.textContent = `匹配：${event.error === 'no-speech' ? '等待说话' : '异常'}`;
+    };
+
+    recognition.onend = () => {
+      isListening = false;
+      updateListeningUI();
+      if (shouldListen && autoRestart) {
+        window.setTimeout(() => {
+          if (!shouldListen || isListening) return;
+          try { recognition.lang = els.languageSelect.value; recognition.start(); } catch (_) {}
+        }, 300);
+      }
+    };
+  }
+
+  function updateListeningUI() {
+    els.listenCard.classList.toggle('active', isListening);
+    els.startBtn.classList.toggle('listening', shouldListen);
+    els.startBtnText.textContent = shouldListen ? '暂停跟读' : '开始跟读';
+    els.sideStartBtn.textContent = shouldListen ? '暂停跟读' : '开始跟读';
+    els.listenText.textContent = isListening ? '正在聆听…' : shouldListen ? '正在重连…' : '等待开始';
+  }
+
+  function startListening() {
+    if (!els.scriptInput.value.trim()) {
+      toast('先粘贴一段口播稿。');
+      els.scriptInput.focus();
+      return;
+    }
+    if (!SpeechRecognition) {
+      toast('当前浏览器不支持语音识别，建议使用最新版 Chrome / Edge。');
+      return;
+    }
+    shouldListen = true;
+    recentFinal = '';
+    lastInterim = '';
+    // 重置统计
+    listenStartTime = Date.now();
+    lastSpeedCalcTime = listenStartTime;
+    lastSpeedCalcIndex = currentOriginalIndex;
+    exactMatchCount = 0;
+    fuzzyMatchCount = 0;
+    totalConfidence = 0;
+    matchCount = 0;
+    summaryShown = false;
+    els.speedValue.textContent = '0';
+    updateListeningUI();
+    try {
+      recognition.lang = els.languageSelect.value;
+      recognition.start();
+    } catch (err) {
+      if (!String(err).includes('already started')) toast('无法启动语音识别，请刷新页面后重试。');
+    }
+  }
+
+  function stopListening() {
+    shouldListen = false;
+    updateListeningUI();
+    if (recognition && isListening) {
+      try { recognition.stop(); } catch (_) {}
+    }
+  }
+
+  function toggleListening() { shouldListen ? stopListening() : startListening(); }
+
+  function moveBySentence(direction) {
+    const text = els.scriptInput.value;
+    if (!text) return;
+    const boundaries = /[。！？!?\n]/;
+    if (direction > 0) {
+      let i = Math.min(currentOriginalIndex + 1, text.length);
+      while (i < text.length && !boundaries.test(text[i - 1])) i++;
+      currentOriginalIndex = Math.min(text.length, i);
+    } else {
+      let i = Math.max(0, currentOriginalIndex - 2);
+      while (i > 0 && !boundaries.test(text[i - 1])) i--;
+      if (i === currentOriginalIndex || currentOriginalIndex - i < 3) {
+        i = Math.max(0, i - 2);
+        while (i > 0 && !boundaries.test(text[i - 1])) i--;
+      }
+      currentOriginalIndex = i;
+    }
+    renderProgress(true);
+    els.matchStatus.textContent = '匹配：手动校准';
+    saveState();
+  }
+
+  async function toggleFullscreen() {
+    try {
+      if (!document.fullscreenElement) {
+        await document.documentElement.requestFullscreen?.();
+        document.body.classList.add('fullscreen-mode');
+      } else {
+        await document.exitFullscreen?.();
+      }
+    } catch (_) {
+      document.body.classList.toggle('fullscreen-mode');
+    }
+  }
+
+  function syncFullscreenClass() { document.body.classList.toggle('fullscreen-mode', !!document.fullscreenElement); }
+
+  function toggleMirror(force) {
+    mirrored = typeof force === 'boolean' ? force : !mirrored;
+    els.mirrorBtn.setAttribute('aria-pressed', String(mirrored));
+    els.mirrorToggle.setAttribute('aria-pressed', String(mirrored));
+    els.mirrorToggle.classList.toggle('on', mirrored);
+    renderProgress(false);
+    saveState();
+  }
+
+  function togglePressed(el, value) {
+    el.setAttribute('aria-pressed', String(value));
+    el.classList.toggle('on', value);
+  }
+
+  function toast(message) {
+    els.toast.textContent = message;
+    els.toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => els.toast.classList.remove('show'), 2600);
+  }
+
+  function detectSupport() {
+    const secure = window.isSecureContext || ['localhost', '127.0.0.1'].includes(location.hostname);
+    if (SpeechRecognition && secure) {
+      els.supportTitle.textContent = '浏览器支持语音跟随';
+      els.supportDesc.textContent = '首次开始时，请允许浏览器访问麦克风。';
+      els.supportCard.classList.remove('bad');
+    } else if (!secure) {
+      els.supportTitle.textContent = '需要 HTTPS 或 localhost';
+      els.supportDesc.textContent = '麦克风功能在普通 HTTP 页面可能被浏览器禁用。';
+      els.supportCard.classList.add('bad');
+    } else {
+      els.supportTitle.textContent = '当前浏览器不支持实时识别';
+      els.supportDesc.textContent = '建议改用最新版 Chrome / Edge。';
+      els.supportCard.classList.add('bad');
+    }
+  }
+
+  function saveState() {
+    try {
+      localStorage.setItem('voiceTeleprompterState', JSON.stringify({
+        script: els.scriptInput.value,
+        currentOriginalIndex,
+        fontSize: els.fontSizeRange.value,
+        lineHeight: els.lineHeightRange.value,
+        sensitivity: els.sensitivityRange.value,
+        language: els.languageSelect.value,
+        mirrored, hideRead, autoRestart
+      }));
+    } catch (_) {}
+  }
+
+  function loadState() {
+    let state = null;
+    try { state = JSON.parse(localStorage.getItem('voiceTeleprompterState') || 'null'); } catch (_) {}
+    if (!state) return;
+    els.scriptInput.value = state.script || '';
+    currentOriginalIndex = Number(state.currentOriginalIndex) || 0;
+    els.fontSizeRange.value = state.fontSize || 54;
+    els.lineHeightRange.value = state.lineHeight || 165;
+    els.sensitivityRange.value = state.sensitivity || 2;
+    els.languageSelect.value = state.language || 'zh-CN';
+    mirrored = !!state.mirrored;
+    hideRead = !!state.hideRead;
+    autoRestart = state.autoRestart !== false;
+  }
+
+  function applySettings() {
+    const fontSize = Number(els.fontSizeRange.value);
+    const lineHeight = Number(els.lineHeightRange.value) / 100;
+    currentSensitivity = Number(els.sensitivityRange.value);
+    document.documentElement.style.setProperty('--prompt-size', `${fontSize}px`);
+    document.documentElement.style.setProperty('--prompt-line', String(lineHeight));
+    els.fontSizeValue.textContent = `${fontSize}px`;
+    els.lineHeightValue.textContent = lineHeight.toFixed(2);
+    els.sensitivityValue.textContent = ['稳一点', '均衡', '灵敏'][currentSensitivity - 1];
+    togglePressed(els.hideReadToggle, hideRead);
+    togglePressed(els.mirrorToggle, mirrored);
+    togglePressed(els.autoRestartToggle, autoRestart);
+    els.mirrorBtn.setAttribute('aria-pressed', String(mirrored));
+  }
+
+  // Non-UI QA hook. Harmless in production and useful for deterministic smoke tests.
+  window.__teleprompterQA = {
+    speak: (text, isFinal = true) => applyTranscript(text, isFinal),
+    state: () => ({
+      currentOriginalIndex,
+      progress: els.progressStatus.textContent,
+      match: els.matchStatus.textContent,
+      scriptLength: els.scriptInput.value.length
+    })
+  };
+
+  // Tabs
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      tab.classList.add('active');
+      $(`tab-${tab.dataset.tab}`).classList.add('active');
+    });
+  });
+
+  els.scriptInput.addEventListener('input', () => updateScript({ reset: true }));
+  els.startBtn.addEventListener('click', toggleListening);
+  els.sideStartBtn.addEventListener('click', toggleListening);
+  els.resetBtn.addEventListener('click', () => { currentOriginalIndex = 0; recentFinal = ''; lastInterim = ''; els.matchStatus.textContent = '匹配：待机'; renderProgress(true); saveState(); toast('已回到开头'); });
+  els.backBtn.addEventListener('click', () => moveBySentence(-1));
+  els.forwardBtn.addEventListener('click', () => moveBySentence(1));
+  els.fullscreenBtn.addEventListener('click', toggleFullscreen);
+  els.mirrorBtn.addEventListener('click', () => toggleMirror());
+  document.addEventListener('fullscreenchange', syncFullscreenClass);
+
+  els.fontSizeRange.addEventListener('input', () => { applySettings(); saveState(); });
+  els.lineHeightRange.addEventListener('input', () => { applySettings(); saveState(); });
+  els.sensitivityRange.addEventListener('input', () => { applySettings(); saveState(); });
+  els.languageSelect.addEventListener('change', () => { if (recognition) recognition.lang = els.languageSelect.value; saveState(); });
+  els.hideReadToggle.addEventListener('click', () => { hideRead = !hideRead; applySettings(); renderProgress(false); saveState(); });
+  els.mirrorToggle.addEventListener('click', () => toggleMirror());
+  els.autoRestartToggle.addEventListener('click', () => { autoRestart = !autoRestart; applySettings(); saveState(); });
+
+  els.sampleBtn.addEventListener('click', () => { els.scriptInput.value = sample; currentOriginalIndex = 0; updateScript(); toast('已填入示例文案'); });
+  els.clearBtn.addEventListener('click', () => { stopListening(); els.scriptInput.value = ''; currentOriginalIndex = 0; updateScript(); });
+  els.importBtn.addEventListener('click', () => els.fileInput.click());
+  els.fileInput.addEventListener('change', async () => {
+    const file = els.fileInput.files?.[0];
+    if (!file) return;
+    const text = await file.text();
+    els.scriptInput.value = text.slice(0, 10000);
+    currentOriginalIndex = 0;
+    updateScript();
+    toast(`已导入 ${file.name}`);
+    els.fileInput.value = '';
+  });
+
+  els.shortcutBtn.addEventListener('click', () => els.shortcutDialog.showModal());
+  els.closeShortcutBtn.addEventListener('click', () => els.shortcutDialog.close());
+  els.shortcutDialog.addEventListener('click', (e) => { if (e.target === els.shortcutDialog) els.shortcutDialog.close(); });
+
+  document.addEventListener('keydown', (e) => {
+    const typing = ['TEXTAREA', 'INPUT', 'SELECT'].includes(document.activeElement?.tagName);
+    if (typing) return;
+    if (e.code === 'Space') { e.preventDefault(); toggleListening(); }
+    else if (e.key === 'ArrowRight') { e.preventDefault(); moveBySentence(1); }
+    else if (e.key === 'ArrowLeft') { e.preventDefault(); moveBySentence(-1); }
+    else if (e.key.toLowerCase() === 'f') { e.preventDefault(); toggleFullscreen(); }
+  });
+
+
+  function showSummary(totalChars) {
+    stopListening();
+    const elapsed = Date.now() - listenStartTime;
+    const elapsedSec = Math.round(elapsed / 1000);
+    const elapsedMin = Math.floor(elapsedSec / 60);
+    const remainSec = elapsedSec % 60;
+    const charsRead = currentOriginalIndex;
+    const avgCpm = elapsed > 0 ? Math.round(charsRead / (elapsed / 60000)) : 0;
+    const pct = totalChars > 0 ? Math.round((charsRead / totalChars) * 100) : 0;
+
+    if (pct >= 100) {
+      els.summaryTitle.textContent = '完美朗读！';
+      els.summarySubtitle.textContent = '你完整地读完了全部文案';
+    } else if (pct >= 80) {
+      els.summaryTitle.textContent = '朗读完成';
+      els.summarySubtitle.textContent = '你读了文案的 ' + pct + '%';
+    } else {
+      els.summaryTitle.textContent = '朗读结束';
+      els.summarySubtitle.textContent = '你读了文案的 ' + pct + '%';
+    }
+
+    els.summaryCharCount.textContent = String(charsRead);
+    els.summaryCharSub.textContent = '共 ' + totalChars + ' 字';
+    els.summaryDuration.textContent = elapsedSec < 60 ? (elapsedSec + 's') : (elapsedMin + 'm');
+    els.summaryDurationSub.textContent = elapsedMin + ' 分 ' + remainSec + ' 秒';
+    els.summarySpeed.textContent = String(avgCpm);
+
+    els.summaryExactCount.textContent = exactMatchCount + ' 次';
+    els.summaryFuzzyCount.textContent = fuzzyMatchCount + ' 次';
+
+    const avgConf = matchCount > 0 ? Math.round((totalConfidence / matchCount) * 100) : 0;
+    els.summaryAvgConfidence.textContent = avgConf + '%';
+    els.summaryAvgConfidence.className = 'value ' + (avgConf >= 80 ? 'good' : avgConf >= 60 ? 'warn' : '');
+
+    els.summaryCoverage.textContent = pct + '%';
+    els.summaryCoverage.className = 'value ' + (pct >= 90 ? 'good' : pct >= 70 ? 'warn' : '');
+
+    const totalMatches = exactMatchCount + fuzzyMatchCount;
+    const exactPct = totalMatches > 0 ? Math.round((exactMatchCount / totalMatches) * 100) : 0;
+    els.summaryAccuracyBar.style.width = exactPct + '%';
+
+    els.summaryOverlay.classList.add('show');
+  }
+
+  function hideSummary() {
+    els.summaryOverlay.classList.remove('show');
+  }
+
+  els.summaryCloseBtn.addEventListener('click', hideSummary);
+  els.summaryRetryBtn.addEventListener('click', function() {
+    hideSummary();
+    currentOriginalIndex = 0;
+    recentFinal = '';
+    lastInterim = '';
+    renderProgress(true);
+    startListening();
+  });
+  els.summaryOverlay.addEventListener('click', function(e) { if (e.target === els.summaryOverlay) hideSummary(); });
+
+  // Useful for local QA and demos without requiring a microphone: ?demo=1
+  if (new URLSearchParams(location.search).get('demo') === '1') {
+    window.teleprompterDemoSpeak = (text) => applyTranscript(text, true);
+  }
+
+  loadState();
+  applySettings();
+  updateScript();
+  detectSupport();
+  setupRecognition();
+})();
+
+</script>
+  </body>
+</html>
