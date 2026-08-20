@@ -26,7 +26,7 @@
   --warn: #ffd447;
   --danger: #ff6175;
   --prompt-size: 54px;
-  --prompt-line: 1.65;
+  --prompt-line: 1.35;
   font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
 }
 
@@ -72,7 +72,7 @@ button { cursor: pointer; }
 .teleprompter-panel {
   border: 1px solid var(--border); border-top: 0; background: rgba(5, 10, 18, .76); min-height: 640px; overflow: hidden;
 }
-.status-row { height: 76px; display: flex; align-items: center; justify-content: space-between; padding: 0 28px; border-bottom: 1px solid rgba(255,255,255,.03); }
+.status-row { height: 76px; display: flex; align-items: center; justify-content: space-between; padding: 0 28px; border-bottom: 0; }
 .listen-card { display: inline-flex; align-items: center; gap: 10px; min-width: 176px; color: #aab5c7; font-size: 13px; }
 .listen-card.active { color: #dfffee; }
 .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #5d6879; box-shadow: 0 0 0 0 rgba(41,223,141,0); transition: .2s; }
@@ -84,22 +84,22 @@ button { cursor: pointer; }
 .listen-card.active .wave i { animation: wave 1s ease-in-out infinite; }
 .listen-card.active .wave i:nth-child(2) { animation-delay: -.8s; } .listen-card.active .wave i:nth-child(3) { animation-delay: -.6s; } .listen-card.active .wave i:nth-child(4) { animation-delay: -.4s; } .listen-card.active .wave i:nth-child(5) { animation-delay: -.2s; }
 @keyframes wave { 0%,100% { height: 5px; } 50% { height: 21px; } }
-.status-right { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--muted); }
-.status-right span { padding: 7px 10px; border: 1px solid var(--border); border-radius: 8px; background: rgba(255,255,255,.025); }
+.status-right { display: flex; align-items: center; gap: 18px; font-size: 12px; color: var(--muted); }
+.status-right span { padding: 0; border: 0; border-radius: 0; background: transparent; }
 
 .prompt-stage { position: relative; height: 500px; outline: none; overflow: hidden; }
 .prompt-stage::before, .prompt-stage::after { content: ""; position: absolute; left: 0; right: 0; height: 105px; z-index: 4; pointer-events: none; }
 .prompt-stage::before { top: 0; background: linear-gradient(to bottom, rgba(5,10,18,.98), rgba(5,10,18,0)); }
 .prompt-stage::after { bottom: 0; background: linear-gradient(to top, rgba(5,10,18,.98), rgba(5,10,18,0)); }
-.reading-guide { position: absolute; z-index: 2; left: 5%; right: 5%; top: 50%; height: 94px; transform: translateY(-50%); border-left: 2px solid rgba(111,124,255,.62); background: linear-gradient(90deg, rgba(111,124,255,.055), transparent 70%); pointer-events: none; }
 .prompt-scroll { height: 100%; overflow: auto; scrollbar-width: none; scroll-behavior: smooth; padding: 60px 8% 120px; }
 .prompt-scroll::-webkit-scrollbar { display: none; }
-.prompt-text { font-size: var(--prompt-size); line-height: var(--prompt-line); font-weight: 620; letter-spacing: .025em; white-space: pre-wrap; word-break: break-word; transform-origin: center; transition: transform .2s ease; }
+.prompt-text { font-size: var(--prompt-size); line-height: var(--prompt-line); font-weight: 620; letter-spacing: var(--letter-spacing, 0.025em); white-space: pre-wrap; word-break: break-word; transform-origin: center; transition: transform .2s ease; }
 .prompt-text.mirrored { transform: scaleX(-1); }
 .prompt-char { color: #31394a; transition: color .14s ease, opacity .14s ease, text-shadow .14s ease; }
 .prompt-char.read { color: #4b5362; }
 .prompt-char.current { color: var(--warn); text-shadow: 0 0 28px rgba(255, 212, 71, .18); }
 .prompt-char.upcoming { color: #f4f6fa; }
+.prompt-char.prompt-break { display: block; width: 100%; height: calc(var(--prompt-size) * .45); font-size: 0; line-height: 0; }
 .prompt-text.hide-read .prompt-char.read { opacity: 0; }
 .empty-state { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; text-align: center; padding: 40px; z-index: 3; }
 .empty-state.hidden { display: none; }
@@ -185,7 +185,7 @@ input[type="range"] { width: 100%; accent-color: var(--accent); }
 .toast { position: fixed; left: 50%; bottom: 28px; transform: translate(-50%, 18px); opacity: 0; pointer-events: none; z-index: 100; padding: 10px 14px; color: #fff; background: rgba(14,22,35,.96); border: 1px solid var(--border-strong); border-radius: 10px; box-shadow: 0 12px 40px rgba(0,0,0,.3); font-size: 12px; transition: .22s ease; }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
 
-.speed-display { display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px !important; border: 1px solid rgba(88,226,208,.25) !important; background: rgba(88,226,208,.06) !important; color: var(--accent-2); font-weight: 600; font-size: 13px; }
+.speed-display { display: inline-flex; align-items: baseline; gap: 6px; padding: 0 !important; border: 0 !important; background: transparent !important; color: var(--accent-2); font-weight: 600; font-size: 13px; }
 .speed-display .speed-value { font-size: 16px; font-weight: 700; }
 .speed-display .speed-unit { font-size: 10px; color: var(--muted); }
 
@@ -222,9 +222,10 @@ input[type="range"] { width: 100%; accent-color: var(--accent); }
 body.fullscreen-mode .topbar, body.fullscreen-mode .workspace { display: none; }
 body.fullscreen-mode .app-shell { width: 100%; margin: 0; }
 body.fullscreen-mode .teleprompter-panel { min-height: 100vh; border: 0; }
-body.fullscreen-mode .prompt-stage { height: calc(100vh - 158px); }
-body.fullscreen-mode .status-row { height: 68px; }
+body.fullscreen-mode .status-row { display: none; }
+body.fullscreen-mode .prompt-stage { height: calc(100vh - 90px); }
 body.fullscreen-mode .stage-controls { height: 90px; }
+body.fullscreen-mode .stage-controls .mode-switch { display: none; }
 
 /* ===== Animations (Emil Kowalski style) ===== */
 /* Button press feedback — 100-160ms, transform only */
@@ -249,7 +250,7 @@ button:active { transform: scale(0.96); }
 .listen-card { transition: color 0.2s ease; }
 
 /* Speed display — smooth value change */
-.speed-display { transition: border-color 0.25s ease, background 0.25s ease; }
+.speed-display { transition: color 0.25s ease; }
 
 /* Toast — use strong easing from base CSS */
 .toast { transition-timing-function: var(--ease-out); }
@@ -290,9 +291,8 @@ body.selfie-mode .app-shell { width: 100%; margin: 0; }
 body.selfie-mode .teleprompter-panel { border: 0; min-height: 100vh; }
 body.selfie-mode .prompt-stage { height: 100vh; }
 body.selfie-mode .prompt-scroll { padding: 20px 6% 20px; }
-body.selfie-mode .prompt-text { font-size: clamp(28px, 6vw, 60px); line-height: 1.5; }
+body.selfie-mode .prompt-text { font-size: clamp(28px, 6vw, 60px); line-height: var(--prompt-line); }
 body.selfie-mode .stage-controls { height: auto; padding: 12px 0; border-top: 1px solid rgba(255,255,255,.06); }
-body.selfie-mode .reading-guide { display: none; }
 body.selfie-mode .status-row { display: none; }
 #selfieExitRow { display: none; }
 body.selfie-mode #selfieExitRow { display: flex !important; justify-content: center; }
@@ -309,28 +309,30 @@ body.selfie-mode #selfieExitRow { display: flex !important; justify-content: cen
 }
 
 @media (max-width: 860px) {
-  .app-shell { width: 100%; margin: 0; }
-  .topbar { border-radius: 0; border-left: 0; border-right: 0; padding: 0 14px; }
+  .app-shell { display: flex; flex-direction: column; width: 100%; margin: 0; }
+  .topbar { order: 2; position: static; border-radius: 0; border-left: 0; border-right: 0; padding: 0 14px; }
   .brand-subtitle { display: none; }
   .ghost-btn { display: none; }
   .primary-outline-btn { padding: 9px 11px; font-size: 12px; }
-  .teleprompter-panel { border-left: 0; border-right: 0; min-height: auto; }
+  .teleprompter-panel { order: 1; display: flex; flex-direction: column; border-left: 0; border-right: 0; min-height: auto; }
   .status-row { padding: 0 16px; height: 62px; }
   .match-status { display: none; }
-  .prompt-stage { height: 55vh; min-height: 360px; }
-  .prompt-scroll { padding: 20px 7% 80px; }
-  .prompt-text { font-size: clamp(34px, 8vw, var(--prompt-size)); }
-  .reading-guide { left: 3%; right: 3%; height: 80px; }
+  .prompt-stage { order: 1; height: 55vh; min-height: 360px; }
+  .prompt-stage::before { height: 18px; }
+  .prompt-scroll { padding: 8px 7% 80px; }
+  .prompt-text { font-size: var(--prompt-size); }
+  .status-row { order: 2; }
   .stage-controls { position: sticky; bottom: 0; background: rgba(6,12,20,.94); z-index: 10; padding: 0 8px; }
+  .stage-controls { order: 3; }
   .control-btn { padding: 10px; font-size: 0; }
   .control-btn svg { width: 20px; }
   .main-control-btn { min-width: 160px; }
   .editor-grid, .settings-grid { grid-template-columns: 1fr; padding: 16px; }
   .stats-block { grid-column: auto; grid-template-columns: 1fr; }
-  .workspace { margin-top: 8px; border-radius: 0; border-left: 0; border-right: 0; }
+  .workspace { order: 3; margin-top: 8px; border-radius: 0; border-left: 0; border-right: 0; }
   .workspace-footer { align-items: flex-start; flex-direction: column; padding: 12px 16px; }
   textarea { min-height: 200px; }
-  .speed-display { font-size: 11px; padding: 5px 8px !important; }
+  .speed-display { font-size: 11px; padding: 0 !important; }
   .speed-display .speed-value { font-size: 13px; }
   .speed-display .speed-unit { display: none; }
   .status-row { flex-wrap: wrap; gap: 6px; }
@@ -394,7 +396,6 @@ body.selfie-mode #selfieExitRow { display: flex !important; justify-content: cen
         </div>
 
         <div class="prompt-stage" id="promptStage" tabindex="0" aria-label="提词内容">
-          <div class="reading-guide" id="readingGuide" aria-hidden="true"></div>
           <div class="prompt-scroll" id="promptScroll">
             <div class="prompt-text" id="promptText"></div>
           </div>
@@ -413,18 +414,10 @@ body.selfie-mode #selfieExitRow { display: flex !important; justify-content: cen
             <button class="mode-btn" data-mode="scroll" type="button">📜 自动滚动</button>
           </div>
           <div class="control-row" id="voiceControls">
-            <button class="control-btn" id="backBtn" type="button" title="向前回退一句">
-              <svg viewBox="0 0 24 24" fill="none"><path d="M9 7 4 12l5 5M20 7l-8 5 8 5V7Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
-              回退
-            </button>
             <button class="main-control-btn" id="startBtn" type="button">
               <svg class="mic-icon" viewBox="0 0 24 24" fill="none"><path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 1 0 6 0V6a3 3 0 0 0-3-3Z" stroke="currentColor" stroke-width="1.8"/><path d="M6.5 11.5v.5a5.5 5.5 0 0 0 11 0v-.5M12 17.5V21M9 21h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
               <span id="startBtnText">开始跟读</span>
               <kbd>Space</kbd>
-            </button>
-            <button class="control-btn" id="forwardBtn" type="button" title="向后跳一句">
-              跳过
-              <svg viewBox="0 0 24 24" fill="none"><path d="m15 7 5 5-5 5M4 7l8 5-8 5V7Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
             </button>
             <button class="control-btn" id="resetBtn" type="button">
               <svg viewBox="0 0 24 24" fill="none"><path d="M4 12a8 8 0 1 0 2.34-5.66L4 8.67M4 4v4.67h4.67" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -510,11 +503,17 @@ body.selfie-mode #selfieExitRow { display: flex !important; justify-content: cen
           <div class="settings-grid">
             <div class="setting-block">
               <div class="setting-header"><span>字号</span><strong id="fontSizeValue">54px</strong></div>
-              <input id="fontSizeRange" type="range" min="28" max="92" value="54" />
+              <input id="fontSizeRange" type="range" min="6" max="92" value="54" step="1" />
             </div>
             <div class="setting-block">
-              <div class="setting-header"><span>行距</span><strong id="lineHeightValue">1.65</strong></div>
-              <input id="lineHeightRange" type="range" min="120" max="220" value="165" />
+              <div class="setting-header"><span>行距</span><strong id="lineHeightValue">1.35</strong></div>
+              <input id="lineHeightRange" type="range" min="50" max="220" value="135" step="1" />
+              <p class="setting-help">建议 1.20–1.50，0.50 会非常紧凑。</p>
+            </div>
+            <div class="setting-block">
+              <div class="setting-header"><span>字间距</span><strong id="letterSpacingValue">0.03</strong></div>
+              <input id="letterSpacingRange" type="range" min="0" max="20" value="3" />
+              <p class="setting-help">0 = 紧凑，20 = 宽松。</p>
             </div>
             <div class="setting-block toggle-row">
               <div><span>隐藏已读内容</span><small>只保留当前与后续文字</small></div>
@@ -560,10 +559,6 @@ body.selfie-mode #selfieExitRow { display: flex !important; justify-content: cen
                 <option value="bottom">靠下</option>
               </select>
               <p class="setting-help">当前阅读位置在屏幕中的位置。</p>
-            </div>
-            <div class="setting-block toggle-row">
-              <div><span>阅读引导线</span><small>显示左侧竖线引导视线</small></div>
-              <button class="toggle on" id="showGuideToggle" aria-pressed="true" type="button"><span></span></button>
             </div>
             <div class="setting-block">
               <div class="setting-header"><span>高亮颜色</span></div>
@@ -661,9 +656,10 @@ body.selfie-mode #selfieExitRow { display: flex !important; justify-content: cen
     scriptInput: $('scriptInput'), promptText: $('promptText'), promptScroll: $('promptScroll'), emptyState: $('emptyState'),
     charCount: $('charCount'), startBtn: $('startBtn'), startBtnText: $('startBtnText'), sideStartBtn: $('sideStartBtn'),
     listenCard: $('listenCard'), listenText: $('listenText'), matchStatus: $('matchStatus'), progressStatus: $('progressStatus'),
-    resetBtn: $('resetBtn'), backBtn: $('backBtn'), forwardBtn: $('forwardBtn'), fullscreenBtn: $('fullscreenBtn'),
+    resetBtn: $('resetBtn'), fullscreenBtn: $('fullscreenBtn'),
     mirrorBtn: $('mirrorBtn'), mirrorToggle: $('mirrorToggle'), hideReadToggle: $('hideReadToggle'), autoRestartToggle: $('autoRestartToggle'),
     fontSizeRange: $('fontSizeRange'), fontSizeValue: $('fontSizeValue'), lineHeightRange: $('lineHeightRange'), lineHeightValue: $('lineHeightValue'),
+    letterSpacingRange: $('letterSpacingRange'), letterSpacingValue: $('letterSpacingValue'),
     sensitivityRange: $('sensitivityRange'), sensitivityValue: $('sensitivityValue'), languageSelect: $('languageSelect'),
     supportCard: $('supportCard'), supportTitle: $('supportTitle'), supportDesc: $('supportDesc'),
     currentCharStat: $('currentCharStat'), readPercentStat: $('readPercentStat'), lastHeardStat: $('lastHeardStat'),
@@ -678,7 +674,6 @@ body.selfie-mode #selfieExitRow { display: flex !important; justify-content: cen
     summaryCoverage: $('summaryCoverage'), summaryAccuracyBar: $('summaryAccuracyBar'),
     summaryTitle: $('summaryTitle'), summarySubtitle: $('summarySubtitle'),
     autoScrollToggle: $('autoScrollToggle'), scrollPosSelect: $('scrollPosSelect'), scrollPosValue: $('scrollPosValue'),
-    showGuideToggle: $('showGuideToggle'), readingGuide: $('readingGuide'),
     modeSwitch: $('modeSwitch'), voiceControls: $('voiceControls'), scrollControls: $('scrollControls'),
     scrollStartBtn: $('scrollStartBtn'), scrollResetBtn: $('scrollResetBtn'),
     scrollSpeedRange: $('scrollSpeedRange'), scrollSpeedValue: $('scrollSpeedValue')
@@ -716,7 +711,6 @@ body.selfie-mode #selfieExitRow { display: flex !important; justify-content: cen
   // 配置项
   let autoScroll = true;        // 自动滚动
   let scrollPosition = 'center'; // 滚动位置: top / center / bottom
-  let showGuide = true;         // 显示阅读引导线
   let highlightColor = '#ffd447'; // 高亮颜色
   let textColor = '#f4f6fa';    // 文字颜色
   // 自动滚动模式
@@ -883,6 +877,7 @@ body.selfie-mode #selfieExitRow { display: flex !important; justify-content: cen
     for (let i = 0; i < text.length; i++) {
       const span = document.createElement('span');
       span.className = 'prompt-char upcoming';
+      if (text[i] === '\n') span.classList.add('prompt-break');
       span.textContent = text[i];
       span.dataset.index = i;
       fragment.appendChild(span);
@@ -1136,7 +1131,8 @@ body.selfie-mode #selfieExitRow { display: flex !important; justify-content: cen
         sensitivity: els.sensitivityRange.value,
         language: els.languageSelect.value,
         mirrored, hideRead, autoRestart,
-        autoScroll, scrollPosition, showGuide, highlightColor
+        autoScroll, scrollPosition, highlightColor,
+        letterSpacing: els.letterSpacingRange.value
       }));
     } catch (_) {}
   }
@@ -1148,7 +1144,7 @@ body.selfie-mode #selfieExitRow { display: flex !important; justify-content: cen
     els.scriptInput.value = state.script || '';
     currentOriginalIndex = Number(state.currentOriginalIndex) || 0;
     els.fontSizeRange.value = state.fontSize || 54;
-    els.lineHeightRange.value = state.lineHeight || 165;
+    els.lineHeightRange.value = state.lineHeight || 135;
     els.sensitivityRange.value = state.sensitivity || 2;
     els.languageSelect.value = state.language || 'zh-CN';
     mirrored = !!state.mirrored;
@@ -1156,8 +1152,8 @@ body.selfie-mode #selfieExitRow { display: flex !important; justify-content: cen
     autoRestart = state.autoRestart !== false;
     autoScroll = state.autoScroll !== false;
     scrollPosition = state.scrollPosition || 'center';
-    showGuide = state.showGuide !== false;
     highlightColor = state.highlightColor || '#ffd447';
+    els.letterSpacingRange.value = state.letterSpacing || 3;
   }
 
   function applySettings() {
@@ -1166,8 +1162,11 @@ body.selfie-mode #selfieExitRow { display: flex !important; justify-content: cen
     currentSensitivity = Number(els.sensitivityRange.value);
     document.documentElement.style.setProperty('--prompt-size', `${fontSize}px`);
     document.documentElement.style.setProperty('--prompt-line', String(lineHeight));
+    var letterSpacing = Number(els.letterSpacingRange.value) / 100;
+    document.documentElement.style.setProperty('--letter-spacing', letterSpacing + 'em');
     els.fontSizeValue.textContent = `${fontSize}px`;
     els.lineHeightValue.textContent = lineHeight.toFixed(2);
+    els.letterSpacingValue.textContent = letterSpacing.toFixed(2);
     els.sensitivityValue.textContent = ['稳一点', '均衡', '灵敏'][currentSensitivity - 1];
     togglePressed(els.hideReadToggle, hideRead);
     togglePressed(els.mirrorToggle, mirrored);
@@ -1177,8 +1176,6 @@ body.selfie-mode #selfieExitRow { display: flex !important; justify-content: cen
     togglePressed(els.autoScrollToggle, autoScroll);
     els.scrollPosSelect.value = scrollPosition;
     els.scrollPosValue.textContent = { top: '靠上', center: '居中', bottom: '靠下' }[scrollPosition];
-    togglePressed(els.showGuideToggle, showGuide);
-    if (els.readingGuide) els.readingGuide.style.display = showGuide ? '' : 'none';
     document.documentElement.style.setProperty('--warn', highlightColor);
     document.querySelectorAll('.color-pick').forEach(function(btn) {
       btn.style.outline = btn.dataset.color === highlightColor ? '2px solid #fff' : 'none';
@@ -1211,22 +1208,25 @@ body.selfie-mode #selfieExitRow { display: flex !important; justify-content: cen
   els.startBtn.addEventListener('click', toggleListening);
   els.sideStartBtn.addEventListener('click', toggleListening);
   els.resetBtn.addEventListener('click', () => { currentOriginalIndex = 0; recentFinal = ''; lastInterim = ''; els.matchStatus.textContent = '匹配：待机'; renderProgress(true); saveState(); toast('已回到开头'); });
-  els.backBtn.addEventListener('click', () => moveBySentence(-1));
-  els.forwardBtn.addEventListener('click', () => moveBySentence(1));
   els.fullscreenBtn.addEventListener('click', toggleFullscreen);
   els.mirrorBtn.addEventListener('click', () => toggleMirror());
   document.addEventListener('fullscreenchange', syncFullscreenClass);
 
   els.fontSizeRange.addEventListener('input', () => { applySettings(); saveState(); });
   els.lineHeightRange.addEventListener('input', () => { applySettings(); saveState(); });
+  els.letterSpacingRange.addEventListener('input', () => { applySettings(); saveState(); });
   els.sensitivityRange.addEventListener('input', () => { applySettings(); saveState(); });
   els.languageSelect.addEventListener('change', () => { if (recognition) recognition.lang = els.languageSelect.value; saveState(); });
   els.hideReadToggle.addEventListener('click', () => { hideRead = !hideRead; applySettings(); renderProgress(false); saveState(); });
   els.mirrorToggle.addEventListener('click', () => toggleMirror());
   els.autoRestartToggle.addEventListener('click', () => { autoRestart = !autoRestart; applySettings(); saveState(); });
   els.autoScrollToggle.addEventListener('click', () => { autoScroll = !autoScroll; applySettings(); saveState(); });
-  els.scrollPosSelect.addEventListener('change', () => { scrollPosition = els.scrollPosSelect.value; applySettings(); saveState(); });
-  els.showGuideToggle.addEventListener('click', () => { showGuide = !showGuide; applySettings(); saveState(); });
+  els.scrollPosSelect.addEventListener('change', () => {
+    scrollPosition = els.scrollPosSelect.value;
+    applySettings();
+    renderProgress(true);
+    saveState();
+  });
   document.querySelectorAll('.color-pick').forEach(function(btn) {
     btn.addEventListener('click', () => { highlightColor = btn.dataset.color; applySettings(); saveState(); });
   });
